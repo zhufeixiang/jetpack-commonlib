@@ -41,13 +41,21 @@ private fun <VB : ViewBinding> withGenericBindingClass(any: Any, block: (Class<V
     var superclass = any.javaClass.superclass
     while (superclass != null) {
         if (genericSuperclass is ParameterizedType) {
+
+            genericSuperclass.actualTypeArguments.forEach {
                 try {
-                    return block.invoke(genericSuperclass.actualTypeArguments[1] as Class<VB>)
+                    return block.invoke(it as Class<VB>)
                 } catch (e: NoSuchMethodException) {
                 } catch (e: ClassCastException) {
                 } catch (e: InvocationTargetException) {
-                    throw e.targetException
+                    var tagException: Throwable? = e
+                    while (tagException is InvocationTargetException) {
+                        tagException = e.cause
+                    }
+                    throw tagException
+                        ?: IllegalArgumentException("ViewBinding generic was found, but creation failed.")
                 }
+            }
         }
         genericSuperclass = superclass.genericSuperclass
         superclass = superclass.superclass
