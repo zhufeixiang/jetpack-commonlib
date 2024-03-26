@@ -18,7 +18,7 @@ afterEvaluate {
                 // You can then customize attributes of the publication as shown below.
                 groupId = 'com.zfx.commonlib'
                 artifactId = 'commonlib'
-                version = '1.0.0'
+                version = '1.0.2'
             }
         }
     }
@@ -29,7 +29,7 @@ android {
     compileSdk 33
 
     defaultConfig {
-        minSdk 24
+        minSdk 21
         targetSdk 33
         versionCode 1
         versionName '1.0'
