@@ -6,13 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.viewbinding.ViewBinding
 import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.inflateBindingWithGeneric
 
 /**
- * 作者　: hegaojian
- * 时间　: 2019/12/12
- * 描述　: ViewModelFragment基类，自动把ViewModel注入Fragment和 ViewBinding 注入进来了
- * 需要使用 ViewBinding 的清继承它
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: ViewBinding + ViewModel 的 Fragment 基类，封装 VM 与 VB 注入
  */
 abstract class BaseVmVbFragment<VM : BaseViewModel, VB : ViewBinding> : BaseVmFragment<VM>() {
 
@@ -22,12 +20,14 @@ abstract class BaseVmVbFragment<VM : BaseViewModel, VB : ViewBinding> : BaseVmFr
     private var _binding: VB? = null
     val mViewBind: VB get() = _binding!!
 
+    protected abstract fun initBinding(inflater: LayoutInflater, container: ViewGroup?, attachToParent: Boolean = false): VB
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding  = inflateBindingWithGeneric(inflater,container,false)
+        _binding  = initBinding(inflater, container, false)
         return mViewBind.root
     }
 

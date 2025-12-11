@@ -7,14 +7,16 @@ import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
-import com.zfx.commonlib.ext.inflateBindingWithGeneric
 
 /**
- * 适配vp2的懒加载的带刷新的fragment
- * */
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: 适配 ViewPager2 的懒加载 Fragment 基类，封装 VB 与首屏加载
+ */
 abstract class BaseViewPager2LazyVMFragment<T : ViewBinding>(@LayoutRes open var layoutId : Int) :Fragment(layoutId){
 
     open lateinit var binding : T
+    protected abstract fun initBinding(inflater: LayoutInflater, container: ViewGroup?, attachToParent: Boolean = false): T
     /**
      * 是否第一次加载
      * */
@@ -25,7 +27,7 @@ abstract class BaseViewPager2LazyVMFragment<T : ViewBinding>(@LayoutRes open var
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        binding = inflateBindingWithGeneric(layoutInflater,container,false)
+        binding = initBinding(layoutInflater, container, false)
         return binding.root
     }
 

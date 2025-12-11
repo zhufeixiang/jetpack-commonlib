@@ -8,7 +8,9 @@ import android.view.View
 import android.widget.ImageView
 
 /**
- * 设置view显示
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: View 扩展，包含显示控制、防抖点击与安全生成位图
  */
 fun View.visible() {
     visibility = View.VISIBLE

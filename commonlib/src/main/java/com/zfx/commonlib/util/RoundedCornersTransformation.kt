@@ -8,7 +8,9 @@ import java.security.MessageDigest
 
 
 /**
- * glide 输出指定圆角
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: Glide 圆角变换，支持单独控制四个角
  */
 class RoundedCornersTransformation @JvmOverloads constructor(
     private val radius: Int,

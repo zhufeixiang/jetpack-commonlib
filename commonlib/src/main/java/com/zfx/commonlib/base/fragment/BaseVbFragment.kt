@@ -9,19 +9,12 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import androidx.viewbinding.ViewBinding
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.getVmClazz
-import com.zfx.commonlib.ext.inflateBindingWithGeneric
-import com.zfx.commonlib.network.manager.NetState
-import com.zfx.commonlib.network.manager.NetworkStateManager
 
 /**
- * 作者　: zhufeixiang
- * 时间　: 2023/3/15
- * 描述　: ViewBindingFragment基类
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: 纯 ViewBinding Fragment 基类（无 ViewModel），封装 inflate 与懒加载
  */
 
 abstract class BaseVbFragment<VB : ViewBinding> : Fragment() {
@@ -37,12 +30,14 @@ abstract class BaseVbFragment<VB : ViewBinding> : Fragment() {
     private var _binding: VB? = null
     val mViewBind: VB get() = _binding!!
 
+    protected abstract fun initBinding(inflater: LayoutInflater, container: ViewGroup?, attachToParent: Boolean = false): VB
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding  = inflateBindingWithGeneric(inflater,container,false)
+        _binding  = initBinding(inflater, container, false)
         return mViewBind.root
     }
 
@@ -60,10 +55,6 @@ abstract class BaseVbFragment<VB : ViewBinding> : Fragment() {
         initData()
     }
 
-    /**
-     * 网络变化监听 子类重写
-     */
-    open fun onNetworkStateChanged(netState: NetState) {}
 
     /**
      * 初始化view
@@ -90,20 +81,10 @@ abstract class BaseVbFragment<VB : ViewBinding> : Fragment() {
      */
     private fun onVisible() {
         if (lifecycle.currentState == Lifecycle.State.STARTED && isFirst) {
-            // 延迟加载 防止 切换动画还没执行完毕时数据就已经加载好了，这时页面会有渲染卡顿
-            handler.postDelayed( {
+            handler.postDelayed({
                 lazyLoadData()
-                //在Fragment中，只有懒加载过了才能开启网络变化监听
-                NetworkStateManager.instance.mNetworkStateCallback.observe(
-                    this,
-                    Observer {
-                        //不是首次订阅时调用方法，防止数据第一次监听错误
-                        if (!isFirst) {
-                            onNetworkStateChanged(it)
-                        }
-                    })
                 isFirst = false
-            },lazyLoadTime())
+            }, lazyLoadTime())
         }
     }
 

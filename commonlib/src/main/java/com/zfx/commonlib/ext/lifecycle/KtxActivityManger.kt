@@ -4,9 +4,9 @@ import android.app.Activity
 import java.util.*
 
 /**
- * 作者　: hegaojian
- * 时间　: 2021/6/8
- * 描述　:
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: Activity 栈管理，支持入栈/出栈/关闭当前或指定 Activity
  */
 object KtxActivityManger {
     //activity集合

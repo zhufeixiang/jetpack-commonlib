@@ -7,9 +7,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.OnLifecycleEvent
 
 /**
- * 作者　: hegaojian
- * 时间　: 20120/1/7
- * 描述　:
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: 随宿主生命周期清理消息的 Handler，避免内存泄漏
  */
 class KtxHandler(lifecycleOwner: LifecycleOwner, callback: Callback) : Handler(callback), LifecycleObserver {
 

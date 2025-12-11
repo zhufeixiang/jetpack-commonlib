@@ -6,7 +6,9 @@ import android.widget.EditText
 import android.widget.TextView
 
 /**
- * 优化输入框
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: EditText/TextView 扩展，包含文本监听与便捷获取
  */
 fun EditText.afterTextChange(afterTextChanged: (String) -> Unit) {
 

@@ -6,9 +6,9 @@ import android.os.Bundle
 import com.zfx.commonlib.ext.util.logd
 
 /**
- * 作者　: hegaojian
- * 时间　: 20120/1/7
- * 描述　:
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: Activity 生命周期回调，维护 Activity 栈并输出调试日志
  */
 class KtxLifeCycleCallBack : Application.ActivityLifecycleCallbacks {
 

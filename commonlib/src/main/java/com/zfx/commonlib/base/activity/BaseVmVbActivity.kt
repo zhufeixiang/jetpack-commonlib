@@ -1,15 +1,14 @@
 package com.zfx.commonlib.base.activity
 
+import android.view.LayoutInflater
 import android.view.View
 import androidx.viewbinding.ViewBinding
 import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.inflateBindingWithGeneric
 
 /**
- * 作者　: hegaojian
- * 时间　: 2019/12/12
- * 描述　: 包含 ViewModel 和 ViewBinding ViewModelActivity基类，把ViewModel 和 ViewBinding 注入进来了
- * 需要使用 ViewBinding 的清继承它
+ * author: zhufeixiang
+ * date: 2025/12/11
+ * des: ViewBinding + ViewModel 的 Activity 基类，负责绑定 VM 与 VB
  */
 abstract class BaseVmVbActivity<VM : BaseViewModel, VB : ViewBinding> : BaseVmActivity<VM>() {
 
@@ -20,9 +19,10 @@ abstract class BaseVmVbActivity<VM : BaseViewModel, VB : ViewBinding> : BaseVmAc
     /**
      * 创建DataBinding
      */
-    override fun initDataBind(): View? {
-        mViewBind = inflateBindingWithGeneric(layoutInflater)
-        return mViewBind.root
+    protected abstract fun initBinding(layoutInflater: LayoutInflater): VB
 
+    override fun initDataBind(): View? {
+        mViewBind = initBinding(layoutInflater)
+        return mViewBind.root
     }
 }
