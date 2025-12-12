@@ -7,6 +7,12 @@ import com.zfx.commonlib.util.StringResourceHelper
  * 网络响应接口
  * 允许不同项目根据各自的响应结构实现此接口
  * 
+ * **注意**：
+ * - 接口只定义契约，不包含具体实现细节
+ * - 不需要 `configureSuccess` 方法（这是 `BaseResponse` 特有的配置功能）
+ * - 不需要 `companion object`（只有需要全局配置的实现类才需要）
+ * - 自定义实现时，直接在 `isSuccess()` 中实现自己的成功判定逻辑即可
+ * 
  * @param T 响应数据类型
  */
 interface IBaseResponse<T> {
@@ -50,14 +56,21 @@ interface IBaseResponse<T> {
  * 服务器返回数据的默认实现（数据类版本）
  * 支持 Flow 网络请求
  * 
- * 如果你的项目响应结构不同，可以实现 IBaseResponse 接口创建自己的响应类
+ * **特点**：
+ * - 提供 `companion object` 用于全局配置成功判定规则
+ * - 提供 `configureSuccess()` 方法用于配置成功码、空数据策略等
+ * - 如果你的项目响应结构不同，可以实现 `IBaseResponse` 接口创建自己的响应类
+ * 
+ * **自定义响应类说明**：
+ * - 不需要 `companion object`：如果成功判定逻辑简单，直接在 `isSuccess()` 中实现即可
+ * - 需要 `companion object`：如果需要在全局配置成功判定规则（类似 `BaseResponse`），可以添加
  * 
  * @param T 响应数据类型
  * @param code 响应码字段名（默认：code）
  * @param message 响应消息字段名（默认：message）
  * @param data 响应数据字段名（默认：data）
  * 
- * 示例：如果你的项目使用 status、msg、result 作为字段名：
+ * **示例1：简单实现（不需要 companion object）**
  * ```
  * data class MyResponse<T>(
  *     val status: Int = 0,
@@ -71,6 +84,26 @@ interface IBaseResponse<T> {
  *     override fun getResponseCode(): Int = status
  *     override fun getResponseMsg(): String = msg
  *     override fun getData(): T? = result
+ * }
+ * ```
+ * 
+ * **示例2：需要全局配置（需要 companion object）**
+ * ```
+ * data class MyResponse<T>(
+ *     val status: Int = 0,
+ *     val msg: String = "",
+ *     val result: T? = null
+ * ) : IBaseResponse<T> {
+ *     companion object {
+ *         var successStatus: Set<Int> = setOf(200, 201)
+ *         
+ *         fun configureSuccess(codes: Set<Int>) {
+ *             successStatus = codes
+ *         }
+ *     }
+ *     
+ *     override fun isSuccess(): Boolean = status in successStatus
+ *     // ... 其他方法实现
  * }
  * ```
  */

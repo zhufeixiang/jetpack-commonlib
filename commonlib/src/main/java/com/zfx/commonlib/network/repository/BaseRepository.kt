@@ -1,7 +1,6 @@
 package com.zfx.commonlib.network.repository
 
 import com.zfx.commonlib.R
-import com.zfx.commonlib.network.error.AppException
 import com.zfx.commonlib.network.error.ExceptionHandle
 import com.zfx.commonlib.network.response.IBaseResponse
 import com.zfx.commonlib.network.result.NetworkResult
@@ -10,10 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import retrofit2.HttpException
-import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 
 /**
  * 基础Repository类
@@ -59,6 +54,51 @@ abstract class BaseRepository {
                         message = StringResourceHelper.getString(R.string.network_data_empty)
                     ))
                 }
+            } else {
+                emit(NetworkResult.Error(
+                    error = null,
+                    code = response.getResponseCode(),
+                    message = response.getErrorMessage()
+                ))
+            }
+            
+        } catch (e: Exception) {
+            // 处理异常
+            val appException = ExceptionHandle.handleException(e)
+            emit(NetworkResult.Error(
+                error = e,
+                code = appException.errCode,
+                message = appException.errorMsg
+            ))
+        }
+    }.flowOn(Dispatchers.IO)
+    
+    /**
+     * 执行网络请求（响应没有 data 字段）
+     * 适用于只需要判断成功/失败，不需要返回数据的接口（如删除、更新等操作）
+     * 
+     * @param apiCall 网络请求的 suspend 函数，返回实现了 IBaseResponse 的响应对象（data 字段可以为空）
+     * @param showLoading 是否显示加载状态，默认为 true
+     * @param loadingMessage 加载提示信息
+     * @return Flow<NetworkResult<Unit>> 网络请求结果流，成功时返回 Unit
+     */
+    protected fun <R : IBaseResponse<*>> requestFlowNoData(
+        apiCall: suspend () -> R,
+        showLoading: Boolean = true,
+        loadingMessage: String = StringResourceHelper.getString(R.string.network_requesting)
+    ): Flow<NetworkResult<Unit>> = flow {
+        try {
+            // 发送加载状态
+            if (showLoading) {
+                emit(NetworkResult.Loading(loadingMessage))
+            }
+            
+            // 执行API调用
+            val response = apiCall()
+            
+            // 处理响应（只判断成功/失败，不获取 data）
+            if (response.isSuccess()) {
+                emit(NetworkResult.Success(Unit))
             } else {
                 emit(NetworkResult.Error(
                     error = null,
