@@ -1,216 +1,97 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ============================================
+# CommonLib 混淆规则
+# ============================================
+# 注意：这是 Android Library 的混淆规则
+# 库本身不会被混淆（minifyEnabled false），但这些规则会在使用库的项目进行混淆时自动合并
+# 
+# 库的混淆规则应该只包含：
+# 1. 库中使用的第三方库的混淆规则
+# 2. 库中公共 API 的保护规则
+# 3. 基本的属性保留规则
+# 
+# 其他规则（如 Activity、Fragment、资源混淆等）应该在使用库的项目中配置
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ============================================
+# 基本属性保留（必需）
+# ============================================
+# 保留注解，用于反射和注解处理器
+-keepattributes *Annotation*,InnerClasses
+# 保留泛型信息，用于 Gson、Retrofit 等库的类型转换
+-keepattributes Signature
+# 保留异常信息，用于调试
+-keepattributes Exceptions
+# 保留代码行号，方便异常信息追踪
+-keepattributes SourceFile,LineNumberTable
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ============================================
+# 库中使用的第三方库混淆规则
+# ============================================
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ImmersionBar：沉浸式状态栏库
+-keep class com.gyf.immersionbar.* {*;}
+-dontwarn com.gyf.immersionbar.**
 
-  #############################################
-  #
-  # 对于一些基本指令的添加
-  #
-  #############################################
-  # 设置混淆的压缩比率 0 ~ 7
-  -optimizationpasses 5
-  # 混淆时不使用大小写混合，混淆后的类名为小写
-  -dontusemixedcaseclassnames
-  # 指定不去忽略非公共库的类
-  -dontskipnonpubliclibraryclasses
-  # 指定不去忽略非公共库的成员
-  -dontskipnonpubliclibraryclassmembers
-  # 混淆时不做预校验
-  -dontpreverify
-  # 混淆时不记录日志
-  -verbose
-  # 代码优化
-  -dontshrink
-  # 不优化输入的类文件
-  -dontoptimize
-  # 保留注解不混淆
-  -keepattributes *Annotation*,InnerClasses
-  # 避免混淆泛型
-  -keepattributes Signature
-  # 保留代码行号，方便异常信息的追踪
-  -keepattributes SourceFile,LineNumberTable
-  # 混淆采用的算法
-  -optimizations !code/simplification/cast,!field/*,!class/merging/*
+# Gson：JSON 序列化/反序列化库
+-keep class com.google.gson.** {*;}
+-keep class com.google.**{*;}
+-keep class sun.misc.Unsafe { *; }
+-keep class com.google.gson.stream.** { *; }
+# 保留使用 Gson 序列化的数据类（由使用库的项目配置具体的数据类）
 
-  # dump.txt文件列出apk包内所有class的内部结构
-  -dump class_files.txt
-  # seeds.txt文件列出未混淆的类和成员
-  -printseeds seeds.txt
-  # usage.txt文件列出从apk中删除的代码
-  -printusage unused.txt
-  # mapping.txt文件列出混淆前后的映射
-  # -printmapping mapping.txt
+# OkHttp3：HTTP 客户端
+-dontwarn com.squareup.okhttp3.**
+-keep class com.squareup.okhttp3.** { *;}
+-dontwarn okio.**
 
+# Retrofit2：HTTP 客户端框架
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+# Retrofit 需要保留泛型和异常信息（已在上面配置）
 
-  #############################################
-  #
-  # Android开发中一些需要保留的公共部分
-  #
-  #############################################
-  #不需混淆的Android类
-  -keep public class * extends android.app.Fragment
-  -keep public class * extends android.app.Activity
-  -keep public class * extends android.app.Application
-  -keep public class * extends android.app.Service
-  -keep public class * extends android.content.BroadcastReceiver
-  -keep public class * extends android.preference.Preference
-  -keep public class * extends android.content.ContentProvider
-  -keep public class * extends android.app.backup.BackupAgentHelper
-  -keep public class * extends android.preference.Preference
-  -keep public class * extends android.view.View
-  -keep public class com.android.vending.licensing.ILicensingService
-
-  #support下的所有类及其内部类
-  -keep class android.support.** {*;}
-  -dontwarn android.support.**
-  -keep interface android.support.** { *; }
-
-  #androidx
-  -keep class androidx.** {*;}
-  -keep interface androidx.** {*;}
-  -keep public class * extends androidx.**
-  -dontwarn androidx.**
-
-  #support v4/7库
-  -keep public class * extends android.support.v4.**
-  -keep public class * extends android.support.v7.**
-  -keep public class * extends androidx.annotation.**
-
-  #避免混淆自定义控件类的 get/set 方法和构造函数
-  -keep public class * extends android.view.View{
-      *** get*();
-      void set*(***);
-      public <init>(android.content.Context);
-      public <init>(android.content.Context, android.util.AttributeSet);
-      public <init>(android.content.Context, android.util.AttributeSet, int);
-  }
-  #关闭 Log日志
-  -assumenosideeffects class android.util.Log {
-      public static boolean isLoggable(java.lang.String, int);
-      public static int v(...);
-      public static int i(...);
-      public static int w(...);
-      public static int d(...);
-      public static int e(...);
-  }
-  #避免资源混淆
-  -keep class **.R$* {*;}
-  #避免layout中onclick方法（android:onclick="onClick"）混淆
-  -keepclassmembers class * extends android.app.Activity{
-      public void *(android.view.View);
-  }
-
-  # 保留本地native方法不被混淆
-  -keepclasseswithmembernames class * {
-      native <methods>;
-  }
-
-  # 保留在Activity中的方法参数是view的方法，
-  # 这样以来我们在layout中写的onClick就不会被影响
-  -keepclassmembers class * extends android.app.Activity{
-      public void *(android.view.View);
-  }
-
-  # 保留枚举类不被混淆
-  -keepclassmembers enum * {
-      public static **[] values();
-      public static ** valueOf(java.lang.String);
-  }
-
-  # 保留我们自定义控件（继承自View）不被混淆
-  -keep public class * extends android.view.View{
-      *** get*();
-      void set*(***);
-      public <init>(android.content.Context);
-      public <init>(android.content.Context, android.util.AttributeSet);
-      public <init>(android.content.Context, android.util.AttributeSet, int);
-  }
-
-  # 保留Parcelable序列化类不被混淆
-  -keep class * implements android.os.Parcelable {
-      public static final android.os.Parcelable$Creator *;
-  }
-
-  # 保留Serializable序列化的类不被混淆
-  -keepclassmembers class * implements java.io.Serializable {
-      static final long serialVersionUID;
-      private static final java.io.ObjectStreamField[] serialPersistentFields;
-      !static !transient <fields>;
-      !private <fields>;
-      !private <methods>;
-      private void writeObject(java.io.ObjectOutputStream);
-      private void readObject(java.io.ObjectInputStream);
-      java.lang.Object writeReplace();
-      java.lang.Object readResolve();
-  }
-
-  # 对于带有回调函数的onXXEvent、**On*Listener的，不能被混淆
-  -keepclassmembers class * {
-      void *(**On*Event);
-      void *(**On*Listener);
-  }
-
-
-#   immersionbar
-    -keep class com.gyf.immersionbar.* {*;}
-    -dontwarn com.gyf.immersionbar.**
-
-    #   xpopup
-       -dontwarn com.lxj.xpopup.widget.**
-       -keep class com.lxj.xpopup.widget.**{*;}
-
-
-# gson混淆配置
-  -keep class com.google.gson.** {*;}
-  -keep class com.google.**{*;}
-  -keep class sun.misc.Unsafe { *; }
-  -keep class com.google.gson.stream.** { *; }
-  -keep class com.google.gson.examples.android.model.** { *; }
-
-  # OkHttp3混淆配置
-  -dontwarn com.squareup.okhttp3.**
-  -keep class com.squareup.okhttp3.** { *;}
-  -dontwarn okio.**
-
-  # Retrofit2混淆配置
-  -dontwarn retrofit2.**
-  -keep class retrofit2.** { *; }
-  -keepattributes Signature
-  -keepattributes Exceptions
-
-
-  # eventbus混淆配置
-                  -keepattributes *Annotation*
-                  -keepclassmembers class * {
-                      @org.greenrobot.eventbus.Subscribe <methods>;
-                  }
-                  -keep enum org.greenrobot.eventbus.ThreadMode { *; }
-
-   #   xpopup
-         -dontwarn com.lxj.xpopup.widget.**
-         -keep class com.lxj.xpopup.widget.**{*;}
-
-################ ViewBinding & DataBinding ###############
--keepclassmembers class * implements androidx.viewbinding.ViewBinding {
-  public static * inflate(android.view.LayoutInflater);
-  public static * inflate(android.view.LayoutInflater, android.view.ViewGroup, boolean);
-  public static * bind(android.view.View);
+# EventBus：事件总线框架
+-keepattributes *Annotation*
+-keepclassmembers class * {
+    @org.greenrobot.eventbus.Subscribe <methods>;
 }
+-keep enum org.greenrobot.eventbus.ThreadMode { *; }
+
+# ============================================
+# ViewBinding & DataBinding（库启用了这些功能）
+# ============================================
+-keepclassmembers class * implements androidx.viewbinding.ViewBinding {
+    public static * inflate(android.view.LayoutInflater);
+    public static * inflate(android.view.LayoutInflater, android.view.ViewGroup, boolean);
+    public static * bind(android.view.View);
+}
+
+# ============================================
+# 库公共 API 保护（必需）
+# ============================================
+# 保护库的公共 API，防止在使用库的项目进行混淆时被混淆
+# 这些基类和接口是供项目继承和使用的，必须保持不被混淆
+
+# Base 模块：保护所有基类和接口
+# 包括 BaseViewModel、BaseVmActivity、BaseVmFragment、BaseVbActivity 等
+-keep class com.zfx.commonlib.base.** { *; }
+
+# Network 模块：保护网络相关的公共 API
+# 包括 BaseResponse、IBaseResponse、BaseRepository、NetworkManager 等
+-keep class com.zfx.commonlib.network.** { *; }
+
+# MVI 模块：保护 MVI 相关的公共 API
+# 包括 MviViewModel、MviActivity、MviFragment、ViewIntent、ViewState 等
+-keep class com.zfx.commonlib.mvi.** { *; }
+
+# 扩展函数和工具类：保护公共工具类
+-keep class com.zfx.commonlib.ext.** { *; }
+-keep class com.zfx.commonlib.util.** { *; }
+
+# ============================================
+# 注意：以下规则应该在使用库的项目中配置，而不是在库中
+# ============================================
+# - Activity、Fragment、Service 等 Android 组件的混淆规则
+# - 资源混淆规则（-keep class **.R$* {*;}）
+# - Log 删除规则（-assumenosideeffects class android.util.Log）
+# - 优化相关规则（-optimizationpasses、-dontshrink、-dontoptimize 等）
+# - 自定义 View 的混淆规则
+# - Parcelable、Serializable 的混淆规则（应该在使用库的项目中配置）

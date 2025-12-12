@@ -1,8 +1,9 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
     id 'kotlin-kapt'
-    id 'com.google.devtools.ksp' version '1.9.24-1.0.20'
+    id 'com.google.devtools.ksp' version '2.0.21-1.0.28'
     id 'maven-publish'
 }
 
@@ -56,63 +57,135 @@ android {
         dataBinding = true
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = '1.5.14'
-    }
+    // Kotlin 2.0+ 使用 Compose Compiler Gradle 插件，不再需要 composeOptions
 }
 
 dependencies {
 
-    implementation 'androidx.core:core-ktx:1.15.0'
+    // ========== Android 基础库 ==========
+    // AndroidX Core KTX：提供 Kotlin 扩展函数，简化 Android API 使用
+    implementation 'androidx.core:core-ktx:1.16.0'
+    // AndroidX AppCompat：提供向后兼容的 Material Design 组件和主题支持
     implementation 'androidx.appcompat:appcompat:1.7.0'
+    
+    // ========== 测试框架 ==========
+    // JUnit：Java 单元测试框架
     testImplementation 'junit:junit:4.13.2'
-    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
-    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
-    api 'androidx.lifecycle:lifecycle-extensions:2.2.0'
-    api 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
-    api 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.7'
-    api 'androidx.activity:activity-ktx:1.9.0'
-    api 'androidx.fragment:fragment-ktx:1.8.5'
+    
+    // ========== 网络请求库 ==========
+    // OkHttp：HTTP 客户端，Retrofit 的底层实现
     implementation 'com.squareup.okhttp3:okhttp:5.3.2'
+    // OkHttp 日志拦截器：用于网络请求日志输出，方便调试
     implementation 'com.squareup.okhttp3:logging-interceptor:5.3.2'
+    // Retrofit：类型安全的 HTTP 客户端，用于定义和调用 REST API
     implementation 'com.squareup.retrofit2:retrofit:3.0.0'
+    // Retrofit Gson 转换器：将 JSON 响应自动转换为 Kotlin 数据类
     implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
     // Retrofit 3.0.0+ 已内置协程支持，无需 retrofit2-kotlin-coroutines-adapter
-    //动态替换BaseUrl库 使用可参考 https://github.com/JessYanCoding/RetrofitUrlManager
+    // RetrofitUrlManager：动态替换 BaseUrl，支持多域名切换
+    // 使用可参考 https://github.com/JessYanCoding/RetrofitUrlManager
     implementation 'me.jessyan:retrofit-url-manager:1.4.0'
 
-    implementation 'com.google.code.gson:gson:2.13.2'
+    // ========== Kotlin 协程 ==========
+    // Kotlin 协程核心库：提供协程的基础功能（Flow、Channel、CoroutineScope 等）
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
+    // Kotlin 协程 Android 支持：提供 Android 主线程调度器和生命周期感知的协程作用域
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+    
+    // ========== Lifecycle ==========
+    // lifecycle-extensions 已废弃，不再使用
+    // api 'androidx.lifecycle:lifecycle-extensions:2.2.0'  // 已废弃
+    // Lifecycle Runtime KTX：提供 LifecycleOwner.lifecycleScope，用于在生命周期感知组件中启动协程
+    api 'androidx.lifecycle:lifecycle-runtime-ktx:2.9.4'
+    // Lifecycle ViewModel KTX：提供 ViewModel.viewModelScope，用于在 ViewModel 中启动协程
+    api 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4'
+    // Lifecycle LiveData KTX：提供 LiveData 与协程的互操作支持
+    api 'androidx.lifecycle:lifecycle-livedata-ktx:2.9.4'
+    
+    // ========== Activity/Fragment KTX ==========
+    // Activity KTX：提供 Activity 的 Kotlin 扩展函数（如 viewModels()、activityViewModels()）
+    api 'androidx.activity:activity-ktx:1.9.0'
+    // Fragment KTX：提供 Fragment 的 Kotlin 扩展函数（如 viewModels()、activityViewModels()）
+    api 'androidx.fragment:fragment-ktx:1.8.5'
 
-    // 图片加载库建议在项目中使用 Coil 或其他库，不在基础库中提供
-    // 原因：图片加载库的选择是项目级别的决策，不应该强制绑定在基础库中
-
-    //recyclerview 万能适配器 https://github.com/CymChad/BaseRecyclerViewAdapterHelper
-    api 'io.github.cymchad:BaseRecyclerViewAdapterHelper4:4.3.2'
-
-    //https://github.com/Blankj/AndroidUtilCode 通用工具库
+    // ========== 数据序列化 ==========
+    // Gson：Google 的 JSON 序列化/反序列化库
+    api 'com.google.code.gson:gson:2.13.2'
+    
+    // ========== 工具库 ==========
+    // AndroidUtilCode：通用工具库，提供大量常用的工具方法
+    // https://github.com/Blankj/AndroidUtilCode
     api 'com.blankj:utilcodex:1.31.1'
 
-    // 日志库 https://github.com/orhanobut/logger
-    api 'com.orhanobut:logger:2.2.0'
-    //各种弹框 https://github.com/li-xiaojun/XPopup
-    api 'com.github.li-xiaojun:XPopup:2.10.0'
-    //android 4.4以上沉浸式状态栏和沉浸式导航栏管理 https://github.com/gyf-dev/ImmersionBar
+    // ========== 建议在项目中使用的库（不在基础库中提供） ==========
+    // 原因：这些库的选择是项目级别的决策，不应该强制绑定在基础库中
+    // - 图片加载库：建议使用 Coil 或其他库（如 Glide、Picasso）
+    // - RecyclerView 适配器：建议使用 BaseRecyclerViewAdapterHelper 或其他库
+    // - 日志库：建议使用 Logger 或其他库（如 Timber）
+    // - 弹框库：建议使用 XPopup 或其他库（如 Material Dialog）
+
+    // ========== 基础功能库（必须） ==========
+    // ImmersionBar：沉浸式状态栏和沉浸式导航栏管理
+    // 支持 Android 4.4 以上，提供统一的沉浸式状态栏 API
+    // https://github.com/gyf-dev/ImmersionBar
     api 'com.geyifeng.immersionbar:immersionbar:3.2.2'
+    // ImmersionBar KTX：ImmersionBar 的 Kotlin 扩展函数
     api 'com.geyifeng.immersionbar:immersionbar-ktx:3.2.2'
-    //头条屏幕适配方案 https://github.com/JessYanCoding/AndroidAutoSize
+    // AndroidAutoSize：头条屏幕适配方案，自动适配不同屏幕尺寸
+    // 使用简单，配置一次即可，避免大量 UI 适配代码
+    // https://github.com/JessYanCoding/AndroidAutoSize
     api 'com.github.JessYanCoding:AndroidAutoSize:v1.2.1'
-    //权限请求框架 https://github.com/getActivity/XXPermissions
+    // XXPermissions：权限请求框架，简化 Android 6.0+ 运行时权限处理
+    // 提供统一的权限请求 API，支持各种权限场景
+    // https://github.com/getActivity/XXPermissions
     api 'com.github.getActivity:XXPermissions:25.2'
 
+    // ========== 事件总线 ==========
+    // EventBus：Android 事件总线框架，用于组件间通信
+    // 支持线程切换、粘性事件等功能
     api 'org.greenrobot:eventbus:3.3.1'
 
-    // Compose
-    api platform('androidx.compose:compose-bom:2024.06.00')
+    // ========== Compose UI 框架 ==========
+    // 注意：如果项目中也使用了 Compose，Gradle 会自动进行依赖解析，选择兼容的版本
+    // 如果项目使用更新的 Compose BOM，建议在项目的 build.gradle 中也声明 Compose BOM
+    // Gradle 会优先使用项目中声明的 BOM 版本，确保版本一致性
+    // 
+    // 如果项目不需要 Compose 支持，可以在项目的 build.gradle 中排除这些依赖：
+    // configurations.all {
+    //     exclude group: 'androidx.compose', module: '*'
+    // }
+    // 使用依赖约束，强制使用特定版本的 Compose BOM
+    // constraints {
+    //    implementation('androidx.compose:compose-bom:2024.10.00') {
+    //       because '使用更新的 Compose 版本'
+    //    }
+    // }
+    //
+    // implementation 'com.zfx.commonlib:commonlib:2.0.0'
+    
+    // Compose BOM：统一管理所有 Compose 相关库的版本，确保版本兼容性
+    // 如果项目中也使用了 Compose BOM，Gradle 会自动选择更高的版本
+    // 注意：建议使用最新的稳定版本，以获得最新的功能和修复
+    // 当前版本：2025.12.00（最新稳定版本，与 Kotlin 2.0.21 兼容）
+    // 如果此版本不可用，可以回退到 2024.10.00 或其他稳定版本
+    api platform('androidx.compose:compose-bom:2025.12.00')
+    // Compose UI：Compose 的核心 UI 库，提供基础组件和布局
     api 'androidx.compose.ui:ui'
+    // Compose UI Tooling Preview：用于 Android Studio 中的 Compose 预览功能
     api 'androidx.compose.ui:ui-tooling-preview'
+    // Compose Material3：Material Design 3 组件库
     api 'androidx.compose.material3:material3'
+    // Activity Compose：提供 Activity 与 Compose 的集成支持（setContent 等）
     api 'androidx.activity:activity-compose:1.9.0'
-    api 'androidx.lifecycle:lifecycle-runtime-compose:2.6.2'
+    // Lifecycle Runtime Compose：提供 Lifecycle 与 Compose 的集成支持
+    // 版本与 lifecycle-runtime-ktx 保持一致
+    api 'androidx.lifecycle:lifecycle-runtime-compose:2.9.4'
+    // Compose Foundation：提供基础组件（Column、Row、Box、LazyColumn 等）
+    // 通常包含在 ui 中，但显式声明更清晰
+    api 'androidx.compose.foundation:foundation'
+    // Compose Animation：提供动画支持（AnimatedVisibility、animateColorAsState 等）
+    api 'androidx.compose.animation:animation'
+    // Compose UI Tooling：用于 Android Studio 中的 Compose 调试工具（仅 Debug 构建）
     debugImplementation 'androidx.compose.ui:ui-tooling'
 
 
