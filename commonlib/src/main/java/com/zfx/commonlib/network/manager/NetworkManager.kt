@@ -107,6 +107,9 @@ class NetworkManager private constructor() {
     
     /**
      * 创建 Retrofit 实例
+     * 
+     * 注意：Retrofit 3.0.0+ 已经内置了对 Kotlin 协程的支持，无需额外添加 CoroutineCallAdapterFactory
+     * 可以直接在接口方法中使用 suspend 函数
      */
     private fun createRetrofit(
         baseUrl: String,

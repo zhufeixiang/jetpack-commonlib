@@ -13,7 +13,9 @@
    - `Success<T>` - 成功状态，包含数据
    - `Error` - 错误状态，包含错误信息
 
-2. **BaseResponse** - 服务器响应数据类（数据类版本，唯一使用）
+2. **IBaseResponse** - 网络响应接口，允许自定义响应结构
+   - **BaseResponse** - 默认实现（字段：code、message、data）
+   - 如果你的项目响应结构不同，可以实现 `IBaseResponse` 接口
 
 3. **NetworkConfig** - 网络配置类
    - 职责单一：只负责配置相关参数
@@ -32,6 +34,22 @@
    - 统一的异常处理逻辑
 
 ## 快速开始
+
+### 0. 初始化字符串资源（必须）
+
+在使用网络框架之前，需要在 Application 中初始化字符串资源工具类：
+
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // 初始化字符串资源工具类（支持国际化）
+        StringResourceHelper.init(this)
+    }
+}
+```
+
+**注意**：如果不初始化，所有错误消息将返回空字符串。
 
 ### 1. 初始化网络管理器
 
@@ -81,7 +99,7 @@ class UserRepository : BaseRepository() {
      * 获取用户信息
      */
     fun getUserInfo(): Flow<NetworkResult<UserInfo>> {
-        return executeApiCall(
+        return requestFlow(
             apiCall = { apiService.getUserInfo() },
             showLoading = true,
             loadingMessage = "加载用户信息..."
@@ -92,10 +110,22 @@ class UserRepository : BaseRepository() {
      * 登录
      */
     fun login(username: String, password: String): Flow<NetworkResult<LoginResponse>> {
-        return executeApiCall(
+        return requestFlow(
             apiCall = { 
                 apiService.login(LoginRequest(username, password)) 
-            }
+            },
+            showLoading = true,
+            loadingMessage = "登录中..."
+        )
+    }
+    
+    /**
+     * 不校验响应结果的请求（使用 requestFlowRaw）
+     */
+    fun getRawData(): Flow<NetworkResult<RawData>> {
+        return requestFlowRaw(
+            apiCall = { apiService.getRawData() },
+            showLoading = false  // 不显示加载提示
         )
     }
 }
@@ -108,21 +138,37 @@ class UserViewModel : BaseViewModel() {
     
     private val repository = UserRepository()
     
-    // 方式1：使用扩展函数（推荐）
+    // 方式1：使用扩展函数 collectResult（推荐）
     fun loadUserInfo() {
-        collectNetworkResult(
+        collectResult(
             flow = repository.getUserInfo(),
             onLoading = { message ->
                 // 显示加载提示
-                showLoading(message)
+                _loadingMessage.value = message
+                _isLoading.value = true
             },
             onSuccess = { userInfo ->
                 // 处理成功数据
+                _isLoading.value = false
                 _userInfo.value = userInfo
             },
             onError = { error ->
                 // 处理错误
-                showError(error.message)
+                _isLoading.value = false
+                _errorMessage.value = error.message
+            }
+        )
+    }
+    
+    // 方式2：简化版本（不处理 Loading）
+    fun loadUserInfoSimple() {
+        collectResult(
+            flow = repository.getUserInfo(),
+            onSuccess = { userInfo ->
+                _userInfo.value = userInfo
+            },
+            onError = { error ->
+                _errorMessage.value = error.message
             }
         )
     }
@@ -202,6 +248,50 @@ val config = NetworkConfig(
 initNetworkManager(config)
 ```
 
+### 自定义响应结构
+
+如果你的项目响应结构不是 `code`、`message`、`data`，可以实现 `IBaseResponse` 接口：
+
+```kotlin
+// 示例：项目使用 status、msg、result 作为字段名
+data class MyResponse<T>(
+    val status: Int = 0,
+    val msg: String = "",
+    val result: T? = null
+) : IBaseResponse<T> {
+    override fun isSuccess(): Boolean = status == 200
+    
+    override fun getDataOrThrow(): T = result ?: throw IllegalStateException("响应数据为空")
+    
+    override fun getDataOrDefault(defaultValue: T): T = result ?: defaultValue
+    
+    override fun getErrorMessage(): String = msg.ifEmpty { "未知错误" }
+    
+    override fun getResponseCode(): Int = status
+    
+    override fun getResponseMsg(): String = msg
+    
+    override fun getData(): T? = result
+}
+
+// 在 API 接口中使用
+interface ApiService {
+    @GET("user/info")
+    suspend fun getUserInfo(): MyResponse<UserInfo>
+}
+
+// Repository 中使用方式不变
+class UserRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    fun getUserInfo(): Flow<NetworkResult<UserInfo>> {
+        return requestFlow(
+            apiCall = { apiService.getUserInfo() }
+        )
+    }
+}
+```
+
 ### 继承 BaseRepository 添加自定义方法
 
 ```kotlin
@@ -211,7 +301,7 @@ class CustomRepository : BaseRepository() {
      * 自定义网络请求方法
      */
     fun customRequest(): Flow<NetworkResult<CustomData>> {
-        return executeApiCall(
+        return requestFlow(
             apiCall = { /* 自定义请求逻辑 */ },
             showLoading = true
         )
@@ -255,12 +345,15 @@ repository.getUserInfo()
 
 ## 注意事项
 
-1. 使用前必须先初始化 `NetworkManager`
-2. API 接口方法必须使用 `suspend` 关键字
-3. 返回类型应该是 `BaseResponse<T>` 或 `T`
-4. 在 ViewModel 中使用 `collectNetworkResult` 来收集结果
-5. 多环境配置时，需要先配置所有环境，再切换并初始化
-6. 环境切换会重新初始化网络管理器，会清除所有 API 服务缓存
+1. **必须初始化字符串资源**：使用前必须在 Application 中调用 `StringResourceHelper.init(this)`
+2. 使用前必须先初始化 `NetworkManager`
+3. API 接口方法必须使用 `suspend` 关键字
+4. 返回类型应该是实现了 `IBaseResponse<T>` 的类型（如 `BaseResponse<T>`）或 `T`
+5. 如果项目响应结构不同，实现 `IBaseResponse` 接口创建自己的响应类
+6. 在 ViewModel 中使用 `collectNetworkResult` 来收集结果
+7. 多环境配置时，需要先配置所有环境，再切换并初始化
+8. 环境切换会重新初始化网络管理器，会清除所有 API 服务缓存
+9. **国际化支持**：框架已支持中英文切换，系统会根据设备语言自动选择
 
 ## 环境配置最佳实践
 

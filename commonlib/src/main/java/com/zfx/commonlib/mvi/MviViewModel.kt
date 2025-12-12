@@ -93,10 +93,20 @@ abstract class MviViewModel<I : ViewIntent, S : ViewState> : ViewModel() {
     
     /**
      * 更新状态
-     * 内部使用，用于直接更新状态（不通过 Intent）
+     * 用于直接更新状态（不通过 Intent）
+     * protected：子类可以调用（包括其他模块的子类）
      */
     protected fun updateState(update: (S) -> S) {
         _state.value = update(_state.value)
+    }
+    
+    /**
+     * 更新状态（内部辅助方法）
+     * 供同一模块内的扩展函数使用
+     * internal：同一模块内可访问，扩展函数可以使用
+     */
+    internal fun updateStateInternal(update: (S) -> S) {
+        updateState(update)
     }
     
     /**
@@ -145,4 +155,5 @@ sealed class BaseSingleEvent : SingleEvent {
      */
     object Finish : BaseSingleEvent()
 }
+
 

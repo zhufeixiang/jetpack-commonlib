@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">commonlib</string>
+    
+    <!-- Network Error Related -->
+    <string name="error_unknown">Request failed, please try again later</string>
+    <string name="error_parse">Parse error, please try again later</string>
+    <string name="error_network">Network connection error, please try again later</string>
+    <string name="error_ssl">Certificate error, please try again later</string>
+    <string name="error_timeout">Network connection timeout, please try again later</string>
+    
+    <!-- HTTP Status Code Errors -->
+    <string name="error_http_401">Unauthorized, please login again</string>
+    <string name="error_http_403">Access denied</string>
+    <string name="error_http_404">Requested resource not found</string>
+    <string name="error_http_500">Internal server error</string>
+    <string name="error_http_502_503_504">Server temporarily unavailable, please try again later</string>
+    <string name="error_http_other">Network request failed: %1$d</string>
+    
+    <!-- Exception Handling Related -->
+    <string name="error_parse_data">Data parsing error</string>
+    <string name="error_connect_failed">Network connection failed, please check network settings</string>
+    <string name="error_ssl_certificate">SSL certificate error</string>
+    <string name="error_request_timeout">Request timeout, please check network connection</string>
+    <string name="error_cannot_connect_server">Cannot connect to server, please check network</string>
+    <string name="error_unknown_error">Unknown error</string>
+    
+    <!-- Response Related -->
+    <string name="response_data_empty">Response data is empty</string>
+    <string name="response_unknown_error">Unknown error</string>
+    
+    <!-- Network Request Related -->
+    <string name="network_requesting">Requesting...</string>
+    <string name="network_data_empty">Data is empty</string>
+    
+    <!-- AppException Default Message -->
+    <string name="exception_default_message">Request failed, please try again later</string>
+</resources>
+

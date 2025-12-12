@@ -7,9 +7,11 @@ import com.zfx.commonlib.network.config.NetworkEnvironment
 import com.zfx.commonlib.network.config.NetworkEnvironmentManager
 import com.zfx.commonlib.network.config.EnvironmentConfig
 import com.zfx.commonlib.network.config.EnvironmentConfigBuilder
+import com.zfx.commonlib.R
 import com.zfx.commonlib.network.manager.NetworkManager
-import com.zfx.commonlib.network.response.BaseResponse
+import com.zfx.commonlib.network.response.IBaseResponse
 import com.zfx.commonlib.network.result.NetworkResult
+import com.zfx.commonlib.util.StringResourceHelper
 import me.jessyan.retrofiturlmanager.RetrofitUrlManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -218,12 +220,14 @@ fun clearAllDomains() {
 }
 
 /**
- * Flow 扩展函数：将 BaseResponse 转换为 NetworkResult
+ * Flow 扩展函数：将 IBaseResponse 转换为 NetworkResult
  * 这是一个便捷的扩展函数，可以直接在 Repository 中使用
+ * 
+ * 支持任何实现了 IBaseResponse 接口的响应类型
  */
-fun <T> Flow<BaseResponse<T>>.asNetworkResult(
+fun <T, R : IBaseResponse<T>> Flow<R>.asNetworkResult(
     showLoading: Boolean = true,
-    loadingMessage: String = "请求中..."
+    loadingMessage: String = StringResourceHelper.getString(R.string.network_requesting)
 ): Flow<NetworkResult<T>> = flow {
     try {
         if (showLoading) {
@@ -239,7 +243,7 @@ fun <T> Flow<BaseResponse<T>>.asNetworkResult(
                     emit(NetworkResult.Error(
                         error = e,
                         code = response.getResponseCode(),
-                        message = "数据为空"
+                        message = StringResourceHelper.getString(R.string.network_data_empty)
                     ))
                 }
             } else {
@@ -254,7 +258,7 @@ fun <T> Flow<BaseResponse<T>>.asNetworkResult(
         emit(NetworkResult.Error(
             error = e,
             code = -1,
-            message = e.message ?: "未知错误"
+            message = e.message ?: StringResourceHelper.getString(R.string.error_unknown_error)
         ))
     }
 }.flowOn(Dispatchers.IO)

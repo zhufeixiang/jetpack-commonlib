@@ -3,11 +3,12 @@ package com.zfx.commonlib.mvi.compose
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.ViewModelProvider
+import com.zfx.commonlib.ext.getVmClazz
 import com.zfx.commonlib.mvi.BaseSingleEvent
 import com.zfx.commonlib.mvi.MviViewModel
 import com.zfx.commonlib.mvi.SingleEvent
@@ -21,18 +22,27 @@ import com.zfx.commonlib.mvi.ViewState
  */
 abstract class BaseComposeMviActivity<VM : MviViewModel<I, S>, I : ViewIntent, S : ViewState> : ComponentActivity() {
 
-    protected val viewModel: VM by viewModels()
-
+    protected lateinit var viewModel: VM
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = createViewModel()
         setContent {
-            val state by viewModel.state.collectAsState(initial = viewModel.state.value)
+            val state by viewModel.state.collectAsState()
             ObserveSingleEvents()
             Render(state = state) { intent ->
                 viewModel.dispatchIntent(intent)
             }
         }
     }
+    
+    /**
+     * 创建 ViewModel
+     */
+    private fun createViewModel(): VM {
+        return ViewModelProvider(this)[getVmClazz(this)]
+    }
+
 
     /**
      * 渲染 UI

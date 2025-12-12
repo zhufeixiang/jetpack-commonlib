@@ -1,5 +1,7 @@
 package com.zfx.commonlib.mvi
 
+import com.zfx.commonlib.network.error.AppException
+
 /**
  * ViewIntent 接口
  * MVI 架构中的用户意图接口，所有用户操作都应该封装为 Intent
@@ -44,7 +46,7 @@ sealed class BaseIntent : ViewIntent {
     /**
      * 错误处理 Intent
      */
-    data class HandleError(val error: com.zfx.commonlib.network.error.AppException) : BaseIntent()
+    data class HandleError(val error: AppException) : BaseIntent()
     
     /**
      * 清除错误 Intent

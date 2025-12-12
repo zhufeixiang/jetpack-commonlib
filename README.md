@@ -14,7 +14,56 @@ Step 2. Add the dependency
 	        implementation 'com.github.zhufeixiang:jetpack-commonlib:Tag'
 	}
 
+## 更新日志
+
+#### 1. 移除 BaseViewModel 的 Loading 功能
+- **变更**：`BaseViewModel` 不再包含 `loadingChange` 相关功能
+- **影响**：`BaseVmActivity` 和 `BaseVmFragment` 中移除了 `showLoading()` 和 `dismissLoading()` 的抽象方法
+- **原因**：Loading 状态应该由业务层自行管理，而不是在基础框架中强制实现
+- **迁移**：如需全局 Loading，请在业务层自行封装
+
+#### 2. BaseResponse 支持自定义响应结构
+- **变更**：`BaseResponse` 改为接口 `IBaseResponse` + 默认实现
+- **优势**：允许不同项目根据各自的响应结构实现接口
+- **使用**：如果项目响应结构不同（如使用 `status`、`msg`、`result`），可以实现 `IBaseResponse` 接口
+- **示例**：详见网络请求框架使用指南中的"自定义响应结构"章节
+
+#### 3. 国际化支持（字符串资源化）
+- **变更**：所有硬编码的中文字符串已提取到资源文件
+- **支持语言**：中文简体、英文
+- **初始化**：需要在 Application 的 `onCreate()` 中初始化 `StringResourceHelper`
+  ```kotlin
+  class MyApplication : Application() {
+      override fun onCreate() {
+          super.onCreate()
+          StringResourceHelper.init(this)
+      }
+  }
+  ```
+- **资源文件**：
+  - `values/strings.xml` - 中文简体
+  - `values-en/strings.xml` - 英文
+
+#### 4. 异常处理优化
+- **修复**：修复了 `ExceptionHandle` 中的导入问题（`ParseException`、`ConnectTimeoutException`）
+- **优化**：更新了所有异常处理相关的注释，使用规范的 KDoc 格式
+
+#### 5. 代码注释优化
+- **变更**：更新了 `AppException`、`Error`、`ExceptionHandle` 的注释
+- **格式**：使用规范的 KDoc 格式，提供更清晰的文档说明
+
 ## 使用说明（无反射版本，Flow + MVI/MVVM）
+
+0) 初始化字符串资源（Application onCreate，必须）
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // 初始化字符串资源工具类（支持国际化：中文简体、英文）
+        StringResourceHelper.init(this)
+    }
+}
+```
 
 1) 网络初始化（Application onCreate）
 ```kotlin
@@ -83,7 +132,7 @@ class UserViewModel : BaseViewModel() {
 6) 日志/工具
 - 网络结果：`NetworkResult` + `requestFlow`/`requestFlowRaw`
 - 异常处理：`network/error/*`
-- Glide：`GlideUtil`（圆角/圆形/GIF/视频首帧）
+- 图片加载：建议在项目中使用 Coil 或其他图片加载库，不在基础库中提供
 
 ### 单接口多域名（RetrofitUrlManager）
 

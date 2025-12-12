@@ -77,15 +77,14 @@ dependencies {
     implementation 'com.squareup.okhttp3:logging-interceptor:5.3.2'
     implementation 'com.squareup.retrofit2:retrofit:3.0.0'
     implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
-    implementation 'com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2'
+    // Retrofit 3.0.0+ 已内置协程支持，无需 retrofit2-kotlin-coroutines-adapter
     //动态替换BaseUrl库 使用可参考 https://github.com/JessYanCoding/RetrofitUrlManager
     implementation 'me.jessyan:retrofit-url-manager:1.4.0'
 
     implementation 'com.google.code.gson:gson:2.13.2'
 
-    //glide https://github.com/bumptech/glide
-    api 'com.github.bumptech.glide:glide:5.0.5'
-    ksp 'com.github.bumptech.glide:compiler:5.0.5'
+    // 图片加载库建议在项目中使用 Coil 或其他库，不在基础库中提供
+    // 原因：图片加载库的选择是项目级别的决策，不应该强制绑定在基础库中
 
     //recyclerview 万能适配器 https://github.com/CymChad/BaseRecyclerViewAdapterHelper
     api 'io.github.cymchad:BaseRecyclerViewAdapterHelper4:4.3.2'

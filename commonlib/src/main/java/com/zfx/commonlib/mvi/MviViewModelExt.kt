@@ -2,6 +2,7 @@ package com.zfx.commonlib.mvi
 
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import com.zfx.commonlib.network.error.AppException
 import com.zfx.commonlib.network.result.NetworkResult
 import kotlinx.coroutines.flow.Flow
@@ -33,13 +34,13 @@ fun <T, S : ViewState> MviViewModel<*, S>.handleNetworkResult(
             .onEach { result ->
                 when (result) {
                     is NetworkResult.Loading -> {
-                        updateState { onLoading(it, result.message) }
+                        updateStateInternal { onLoading(it, result.message) }
                     }
                     is NetworkResult.Success -> {
-                        updateState { onSuccess(it, result.data) }
+                        updateStateInternal { onSuccess(it, result.data) }
                     }
                     is NetworkResult.Error -> {
-                        updateState { onError(it, result) }
+                        updateStateInternal { onError(it, result) }
                     }
                 }
             }

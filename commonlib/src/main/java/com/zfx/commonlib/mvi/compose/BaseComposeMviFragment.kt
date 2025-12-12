@@ -11,7 +11,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
+import com.zfx.commonlib.ext.getVmClazz
 import com.zfx.commonlib.mvi.BaseSingleEvent
 import com.zfx.commonlib.mvi.MviViewModel
 import com.zfx.commonlib.mvi.SingleEvent
@@ -25,7 +26,19 @@ import com.zfx.commonlib.mvi.ViewState
  */
 abstract class BaseComposeMviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S : ViewState> : Fragment() {
 
-    protected val viewModel: VM by viewModels()
+    protected lateinit var viewModel: VM
+    
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        viewModel = createViewModel()
+    }
+    
+    /**
+     * 创建 ViewModel
+     */
+    private fun createViewModel(): VM {
+        return ViewModelProvider(this)[getVmClazz(this)]
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,7 +48,7 @@ abstract class BaseComposeMviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                val state by viewModel.state.collectAsState(initial = viewModel.state.value)
+                val state by viewModel.state.collectAsState()
                 ObserveSingleEvents()
                 Render(state = state) { intent ->
                     viewModel.dispatchIntent(intent)

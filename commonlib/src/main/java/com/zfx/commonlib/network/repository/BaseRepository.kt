@@ -1,9 +1,11 @@
 package com.zfx.commonlib.network.repository
 
+import com.zfx.commonlib.R
 import com.zfx.commonlib.network.error.AppException
 import com.zfx.commonlib.network.error.ExceptionHandle
-import com.zfx.commonlib.network.response.BaseResponse
+import com.zfx.commonlib.network.response.IBaseResponse
 import com.zfx.commonlib.network.result.NetworkResult
+import com.zfx.commonlib.util.StringResourceHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -26,15 +28,15 @@ abstract class BaseRepository {
      * 执行网络请求并返回 Flow<NetworkResult<T>>
      * 这是主要的网络请求方法，会自动处理加载、成功、错误状态
      * 
-     * @param apiCall 网络请求的 suspend 函数
+     * @param apiCall 网络请求的 suspend 函数，返回实现了 IBaseResponse 的响应对象
      * @param showLoading 是否显示加载状态，默认为 true
      * @param loadingMessage 加载提示信息
      * @return Flow<NetworkResult<T>> 网络请求结果流
      */
-    protected fun <T> requestFlow(
-        apiCall: suspend () -> BaseResponse<T>,
+    protected fun <T, R : IBaseResponse<T>> requestFlow(
+        apiCall: suspend () -> R,
         showLoading: Boolean = true,
-        loadingMessage: String = "请求中..."
+        loadingMessage: String = StringResourceHelper.getString(R.string.network_requesting)
     ): Flow<NetworkResult<T>> = flow {
         try {
             // 发送加载状态
@@ -54,7 +56,7 @@ abstract class BaseRepository {
                     emit(NetworkResult.Error(
                         error = e,
                         code = response.getResponseCode(),
-                        message = "数据为空"
+                        message = StringResourceHelper.getString(R.string.network_data_empty)
                     ))
                 }
             } else {
@@ -88,7 +90,7 @@ abstract class BaseRepository {
     protected fun <T> requestFlowRaw(
         apiCall: suspend () -> T,
         showLoading: Boolean = true,
-        loadingMessage: String = "请求中..."
+        loadingMessage: String = StringResourceHelper.getString(R.string.network_requesting)
     ): Flow<NetworkResult<T>> = flow {
         try {
             if (showLoading) {

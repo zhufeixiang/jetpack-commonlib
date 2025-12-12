@@ -60,3 +60,4 @@ sealed class NetworkResult<out T> {
     }
 }
 
+
