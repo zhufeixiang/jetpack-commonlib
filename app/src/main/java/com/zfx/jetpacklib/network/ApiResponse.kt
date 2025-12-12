@@ -20,7 +20,7 @@ class ApiResponse<T>(
     }
 
     override fun getErrorMessage(): String {
-        return errorMsg
+        return errorMsg.ifEmpty { "未知错误" }
     }
 
     override fun getResponseCode(): Int {
