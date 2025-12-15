@@ -173,7 +173,7 @@ class UserViewModel : BaseViewModel() {
         )
     }
     
-    // 方式2：手动收集
+    // 方式3：手动收集
     fun loadUserInfoManual() {
         repository.getUserInfo()
             .onEach { result ->
@@ -190,6 +190,79 @@ class UserViewModel : BaseViewModel() {
                 }
             }
             .launchIn(viewModelScope)
+    }
+    
+    // 方式4：使用 awaitResult（挂起函数，顺序执行）
+    fun loadUserData() {
+        viewModelScope.launch {
+            try {
+                // 顺序执行，如果任何一个失败，都会跳到 catch
+                val userInfo = awaitResult(repository.getUserInfo())
+                val posts = awaitResult(repository.getUserPosts(userInfo.id))
+                val friends = awaitResult(repository.getUserFriends(userInfo.id))
+                
+                _userData.value = UserData(userInfo, posts, friends)
+            } catch (e: Exception) {
+                // ⚠️ 注意：所有异常都会统一走到这里
+                // 如果第一个请求失败，后面的请求不会执行
+                _errorMessage.value = e.message ?: "请求失败"
+            }
+        }
+    }
+    
+    // 方式5：使用 awaitResultSafe（分别处理每个请求）
+    fun loadUserDataSafe() {
+        viewModelScope.launch {
+            // 分别处理每个请求，允许部分失败
+            val userInfoResult = awaitResultSafe(repository.getUserInfo())
+            val postsResult = awaitResultSafe(
+                repository.getUserPosts(userInfoResult.getOrNull()?.id ?: "")
+            )
+            val friendsResult = awaitResultSafe(
+                repository.getUserFriends(userInfoResult.getOrNull()?.id ?: "")
+            )
+            
+            // 分别处理每个结果
+            userInfoResult.onSuccess { userInfo ->
+                _userInfo.value = userInfo
+            }.onFailure { e ->
+                _errorMessage.value = "获取用户信息失败: ${e.message}"
+            }
+            
+            // 或者组合处理
+            if (userInfoResult.isSuccess && postsResult.isSuccess && friendsResult.isSuccess) {
+                _userData.value = UserData(
+                    userInfoResult.getOrThrow(),
+                    postsResult.getOrThrow(),
+                    friendsResult.getOrThrow()
+                )
+            } else {
+                // 部分请求失败，但仍可以使用成功的数据
+                val errors = mutableListOf<String>()
+                userInfoResult.onFailure { errors.add("用户信息") }
+                postsResult.onFailure { errors.add("用户文章") }
+                friendsResult.onFailure { errors.add("用户好友") }
+                _errorMessage.value = "以下请求失败: ${errors.joinToString(", ")}"
+            }
+        }
+    }
+    
+    // 方式6：使用 awaitResultOrDefault（失败时使用默认值）
+    fun loadUserDataWithDefault() {
+        viewModelScope.launch {
+            // 失败时返回默认值，不会抛出异常
+            val userInfo = awaitResultOrDefault(
+                flow = repository.getUserInfo(),
+                defaultValue = UserInfo()  // 默认值
+            )
+            val posts = awaitResultOrDefault(
+                flow = repository.getUserPosts(userInfo.id),
+                defaultValue = emptyList<Post>()  // 默认值
+            )
+            
+            // 总是有值，不需要 try-catch
+            _userData.value = UserData(userInfo, posts)
+        }
     }
 }
 ```
@@ -229,6 +302,400 @@ val isConfigured = isEnvironmentConfigured(NetworkEnvironment.DEVELOPMENT)
 ```kotlin
 // 在登录成功后添加认证拦截器
 addAuthInterceptor(token)
+```
+
+### 异常处理方式对比
+
+框架提供了多种异常处理方式，适用于不同的场景：
+
+#### 方式1：使用 `awaitResult`（统一异常处理）
+
+```kotlin
+fun loadUserData() {
+    viewModelScope.launch {
+        try {
+            val userInfo = awaitResult(repository.getUserInfo())
+            val posts = awaitResult(repository.getUserPosts(userInfo.id))
+            val friends = awaitResult(repository.getUserFriends(userInfo.id))
+            
+            _userData.value = UserData(userInfo, posts, friends)
+        } catch (e: Exception) {
+            // ⚠️ 注意：所有异常都会统一走到这里
+            // 如果第一个请求失败，后面的请求不会执行
+            _errorMessage.value = e.message ?: "请求失败"
+        }
+    }
+}
+```
+
+**特点**：
+- ✅ 代码简洁
+- ❌ 无法区分是哪个请求失败
+- ❌ 第一个请求失败后，后续请求不会执行
+- ✅ 适合所有请求必须成功的场景
+
+#### 方式2：使用 `awaitResultSafe`（分别处理每个请求）
+
+```kotlin
+fun loadUserDataSafe() {
+    viewModelScope.launch {
+        // 分别处理每个请求，允许部分失败
+        val userInfoResult = awaitResultSafe(repository.getUserInfo())
+        val postsResult = awaitResultSafe(
+            repository.getUserPosts(userInfoResult.getOrNull()?.id ?: "")
+        )
+        val friendsResult = awaitResultSafe(
+            repository.getUserFriends(userInfoResult.getOrNull()?.id ?: "")
+        )
+        
+        // 分别处理每个结果
+        userInfoResult.onSuccess { userInfo ->
+            _userInfo.value = userInfo
+        }.onFailure { e ->
+            _errorMessage.value = "获取用户信息失败: ${e.message}"
+        }
+        
+        // 或者组合处理
+        if (userInfoResult.isSuccess && postsResult.isSuccess && friendsResult.isSuccess) {
+            _userData.value = UserData(
+                userInfoResult.getOrThrow(),
+                postsResult.getOrThrow(),
+                friendsResult.getOrThrow()
+            )
+        } else {
+            // 部分请求失败，但仍可以使用成功的数据
+            val errors = mutableListOf<String>()
+            userInfoResult.onFailure { errors.add("用户信息") }
+            postsResult.onFailure { errors.add("用户文章") }
+            friendsResult.onFailure { errors.add("用户好友") }
+            _errorMessage.value = "以下请求失败: ${errors.joinToString(", ")}"
+        }
+    }
+}
+```
+
+**特点**：
+- ✅ 可以分别处理每个请求的成功/失败
+- ✅ 允许部分请求失败，继续执行其他请求
+- ✅ 可以知道具体是哪个请求失败了
+- ✅ 适合部分请求失败仍可继续的场景
+
+#### 方式3：使用 `awaitResultOrDefault`（失败时使用默认值）
+
+```kotlin
+fun loadUserDataWithDefault() {
+    viewModelScope.launch {
+        // 失败时返回默认值，不会抛出异常
+        val userInfo = awaitResultOrDefault(
+            flow = repository.getUserInfo(),
+            defaultValue = UserInfo()  // 默认值
+        )
+        val posts = awaitResultOrDefault(
+            flow = repository.getUserPosts(userInfo.id),
+            defaultValue = emptyList<Post>()  // 默认值
+        )
+        
+        // 总是有值，不需要 try-catch
+        _userData.value = UserData(userInfo, posts)
+    }
+}
+```
+
+**特点**：
+- ✅ 代码最简洁，不需要 try-catch
+- ✅ 失败时使用默认值，不会中断执行
+- ✅ 适合允许使用默认值的场景
+- ❌ 无法知道哪些请求失败了
+
+#### 方式4：分别使用 try-catch（精细控制）
+
+```kotlin
+fun loadUserDataFineGrained() {
+    viewModelScope.launch {
+        var userInfo: UserInfo? = null
+        var posts: List<Post>? = null
+        var friends: List<Friend>? = null
+        val errors = mutableListOf<String>()
+        
+        // 分别处理每个请求
+        try {
+            userInfo = awaitResult(repository.getUserInfo())
+        } catch (e: Exception) {
+            errors.add("获取用户信息失败: ${e.message}")
+        }
+        
+        try {
+            posts = awaitResult(repository.getUserPosts(userInfo?.id ?: ""))
+        } catch (e: Exception) {
+            errors.add("获取用户文章失败: ${e.message}")
+        }
+        
+        try {
+            friends = awaitResult(repository.getUserFriends(userInfo?.id ?: ""))
+        } catch (e: Exception) {
+            errors.add("获取用户好友失败: ${e.message}")
+        }
+        
+        // 根据结果决定如何处理
+        if (errors.isNotEmpty()) {
+            _errorMessage.value = errors.joinToString("\n")
+        }
+        
+        // 即使部分失败，也可以使用成功的数据
+        if (userInfo != null) {
+            _userData.value = UserData(
+                userInfo = userInfo,
+                posts = posts ?: emptyList(),
+                friends = friends ?: emptyList()
+            )
+        }
+    }
+}
+```
+
+**特点**：
+- ✅ 最灵活，可以精细控制每个请求
+- ✅ 可以收集所有错误信息
+- ❌ 代码相对冗长
+
+#### 方式5：并行执行（请求之间没有依赖关系）
+
+如果请求之间没有依赖关系，可以并行执行以提高效率：
+
+```kotlin
+fun loadUserDataParallel() {
+    viewModelScope.launch {
+        try {
+            // 先获取 userInfo（因为后续请求依赖它）
+            val userInfo = awaitResult(repository.getUserInfo())
+            
+            // 然后并行执行两个不依赖的请求
+            val postsDeferred = async { awaitResult(repository.getUserPosts(userInfo.id)) }
+            val friendsDeferred = async { awaitResult(repository.getUserFriends(userInfo.id)) }
+            
+            // 等待所有并行请求完成
+            val posts = postsDeferred.await()
+            val friends = friendsDeferred.await()
+            
+            _userData.value = UserData(userInfo, posts, friends)
+        } catch (e: Exception) {
+            _errorMessage.value = e.message ?: "请求失败"
+        }
+    }
+}
+```
+
+**注意**：
+- ⚠️ 如果请求之间有依赖关系（如 `getUserPosts` 需要 `userInfo.id`），不能并行执行第一个请求
+- ✅ 可以先执行有依赖的请求，然后并行执行没有依赖的请求
+- ✅ 如果所有请求都没有依赖关系，可以全部并行执行
+
+**完全并行执行示例**（所有请求都没有依赖关系）：
+
+```kotlin
+fun loadIndependentData() {
+    viewModelScope.launch {
+        try {
+            // 所有请求都没有依赖关系，可以完全并行执行
+            val userInfoDeferred = async { awaitResult(repository.getUserInfo()) }
+            val configDeferred = async { awaitResult(repository.getAppConfig()) }
+            val bannerDeferred = async { awaitResult(repository.getBanners()) }
+            
+            // 等待所有请求完成
+            val userInfo = userInfoDeferred.await()
+            val config = configDeferred.await()
+            val banners = bannerDeferred.await()
+            
+            _data.value = CombinedData(userInfo, config, banners)
+        } catch (e: Exception) {
+            _errorMessage.value = e.message ?: "请求失败"
+        }
+    }
+}
+```
+
+#### 选择建议
+
+| 场景 | 推荐方式 |
+|------|---------|
+| 所有请求必须成功 | `awaitResult` + 统一 try-catch |
+| 允许部分失败，需要知道具体失败 | `awaitResultSafe` |
+| 允许部分失败，使用默认值 | `awaitResultOrDefault` |
+| 需要精细控制每个请求 | 分别使用 try-catch |
+| 请求之间没有依赖关系 | 并行执行（使用 `async`） |
+
+### 未登录拦截器（全局错误码拦截）
+
+框架支持针对未登录错误码的全局拦截，当检测到未登录错误码时，会自动调用拦截器回调，且**只拦截一次**（在配置的时间窗口内）。
+
+#### 配置未登录拦截器
+
+在 Application 中配置未登录拦截器：
+
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // 初始化字符串资源工具类
+        StringResourceHelper.init(this)
+        
+        // 配置未登录拦截器
+        BaseRepository.setLoginInterceptor(
+            interceptor = object : LoginInterceptor {
+                override fun onUnauthorized(errorCode: Int, errorMessage: String) {
+                    // 清除登录信息
+                    UserManager.clearUserInfo()
+                    // 清除 Token
+                    TokenManager.clearToken()
+                    // 跳转到登录页面
+                    val intent = Intent(this@MyApplication, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                }
+            },
+            unauthorizedCodes = setOf(401, 403), // 配置未登录错误码（可以配置多个）
+            interceptWindowMillis = 5000 // 5 秒内只拦截一次，避免重复处理
+        )
+    }
+}
+```
+
+#### 配置说明
+
+- **interceptor**：未登录拦截器回调，当检测到未登录错误码时会调用此回调
+- **unauthorizedCodes**：未登录错误码集合，默认为 `{401}`，可以根据项目实际情况配置多个错误码
+- **interceptWindowMillis**：拦截时间窗口（毫秒），在此时间窗口内只拦截一次，默认 5 秒
+
+#### 工作原理
+
+1. 当网络请求返回错误时，框架会检查错误码是否在 `unauthorizedCodes` 集合中
+2. 如果匹配，且距离上次拦截时间超过 `interceptWindowMillis`，则调用拦截器回调
+3. 使用 `AtomicBoolean` 和 `AtomicLong` 确保线程安全，避免并发情况下的重复处理
+4. 拦截器回调只会被调用一次（在时间窗口内），避免重复跳转登录页面
+
+#### 清除拦截器
+
+如果需要清除未登录拦截器（例如退出登录时）：
+
+```kotlin
+BaseRepository.clearLoginInterceptor()
+```
+
+#### 检查拦截器是否已配置
+
+可以使用以下方法检查拦截器是否已配置：
+
+```kotlin
+if (BaseRepository.isLoginInterceptorConfigured()) {
+    // 拦截器已配置
+} else {
+    // 拦截器未配置
+}
+```
+
+#### 注意事项
+
+1. **必须在 Application 中配置**：建议在 Application 的 `onCreate()` 中配置，确保全局生效
+2. **配置顺序无关**：`setLoginInterceptor` 和 `initNetworkManager` 没有前后顺序要求，只要在发起第一个网络请求前配置好即可
+3. **只拦截一次**：在配置的时间窗口内，相同的未登录错误码只会触发一次拦截器回调
+4. **线程安全**：使用原子类确保并发安全，多个请求同时返回未登录错误码时，只会处理一次
+5. **适用于所有请求**：拦截器会自动应用到所有使用 `requestFlow`、`requestFlowNoData` 和 `requestFlowRaw` 的请求
+
+#### 确保配置完成的方案
+
+**方案 1：在 Application 中统一配置（推荐）**
+
+```kotlin
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        
+        // 1. 初始化字符串资源（必须最先）
+        StringResourceHelper.init(this)
+        
+        // 2. 配置未登录拦截器（顺序无关，但建议在 initNetworkManager 之前）
+        BaseRepository.setLoginInterceptor(
+            interceptor = object : LoginInterceptor {
+                override fun onUnauthorized(errorCode: Int, errorMessage: String) {
+                    // 处理未登录逻辑
+                }
+            }
+        )
+        
+        // 3. 初始化网络管理器（顺序无关）
+        initNetworkManager(
+            baseUrl = "https://api.example.com/",
+            enableLogging = BuildConfig.DEBUG
+        )
+    }
+}
+```
+
+**方案 2：创建初始化工具类**
+
+```kotlin
+object NetworkInitializer {
+    /**
+     * 初始化网络框架（包含所有必要的配置）
+     */
+    fun init(context: Context) {
+        // 1. 初始化字符串资源
+        StringResourceHelper.init(context)
+        
+        // 2. 配置未登录拦截器
+        BaseRepository.setLoginInterceptor(
+            interceptor = object : LoginInterceptor {
+                override fun onUnauthorized(errorCode: Int, errorMessage: String) {
+                    // 处理未登录逻辑
+                }
+            }
+        )
+        
+        // 3. 初始化网络管理器
+        initNetworkManager(
+            baseUrl = "https://api.example.com/",
+            enableLogging = BuildConfig.DEBUG
+        )
+    }
+    
+    /**
+     * 检查是否已初始化
+     */
+    fun isInitialized(): Boolean {
+        return BaseRepository.isLoginInterceptorConfigured() 
+            && NetworkManager.getInstance().isInitialized()
+    }
+}
+
+// 在 Application 中使用
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        NetworkInitializer.init(this)
+    }
+}
+```
+
+**方案 3：在 Repository 中添加检查（可选）**
+
+如果担心配置遗漏，可以在 Repository 的构造函数中添加检查：
+
+```kotlin
+class UserRepository : BaseRepository() {
+    init {
+        // 如果使用了 NetworkInitializer 工具类
+        if (!NetworkInitializer.isInitialized()) {
+            throw IllegalStateException("网络框架未初始化，请在 Application 中调用 NetworkInitializer.init()")
+        }
+        
+        // 或者，如果没有使用 NetworkInitializer，可以单独检查
+        // if (!NetworkManager.getInstance().isInitialized()) {
+        //     throw IllegalStateException("NetworkManager 未初始化，请在 Application 中调用 initNetworkManager()")
+        // }
+        
+        // 注意：拦截器是可选的，不需要强制检查
+    }
+}
 ```
 
 ### 自定义配置

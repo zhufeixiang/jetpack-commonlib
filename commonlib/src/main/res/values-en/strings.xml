@@ -35,5 +35,10 @@
     
     <!-- AppException Default Message -->
     <string name="exception_default_message">Request failed, please try again later</string>
+    
+    <!-- BaseViewModelFlowExt Related -->
+    <string name="error_unknown_error_ext">Unknown error</string>
+    <string name="error_request_timeout_ext">Request timeout</string>
+    <string name="error_illegal_state">Should not reach here</string>
 </resources>
 

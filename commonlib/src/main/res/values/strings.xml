@@ -35,4 +35,9 @@
     
     <!-- AppException 默认消息 -->
     <string name="exception_default_message">请求失败，请稍后再试</string>
+    
+    <!-- BaseViewModelFlowExt 相关 -->
+    <string name="error_unknown_error_ext">未知错误</string>
+    <string name="error_request_timeout_ext">请求超时</string>
+    <string name="error_illegal_state">不应该到达这里</string>
 </resources>
