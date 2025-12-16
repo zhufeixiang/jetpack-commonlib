@@ -14,6 +14,38 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 /**
+ * 未登录拦截器配置类（支持链式调用）
+ */
+class LoginInterceptorConfig private constructor(
+    private val interceptor: LoginInterceptor
+) {
+    /**
+     * 设置未登录错误码集合
+     */
+    fun unauthorizedCodes(codes: Set<Int>): LoginInterceptorConfig {
+        BaseRepository.unauthorizedCodes = codes
+        return this
+    }
+    
+    /**
+     * 设置拦截时间窗口（毫秒）
+     */
+    fun interceptWindowMillis(millis: Long): LoginInterceptorConfig {
+        BaseRepository.interceptWindowMillis = millis
+        return this
+    }
+    
+    companion object {
+        /**
+         * 创建配置对象
+         */
+        internal fun create(interceptor: LoginInterceptor): LoginInterceptorConfig {
+            return LoginInterceptorConfig(interceptor)
+        }
+    }
+}
+
+/**
  * 基础Repository类
  * 职责单一：封装网络请求和错误处理逻辑
  * 可继承：子类可以继承此类并添加自定义的网络请求方法
@@ -36,7 +68,7 @@ abstract class BaseRepository {
          */
         @JvmStatic
         @Volatile
-        private var loginInterceptor: LoginInterceptor? = null
+        internal var loginInterceptor: LoginInterceptor? = null
         
         /**
          * 检查未登录拦截器是否已配置
@@ -60,22 +92,38 @@ abstract class BaseRepository {
          * 上次拦截的时间戳（用于确保只拦截一次）
          */
         @Volatile
-        private var lastInterceptTime: AtomicLong = AtomicLong(0)
+        internal var lastInterceptTime: AtomicLong = AtomicLong(0)
         
         /**
          * 是否正在处理未登录（用于防止并发情况下的重复处理）
          */
         @Volatile
-        private var isIntercepting: AtomicBoolean = AtomicBoolean(false)
+        internal var isIntercepting: AtomicBoolean = AtomicBoolean(false)
         
         /**
-         * 配置未登录拦截器
+         * 配置未登录拦截器（支持链式调用）
          * 
          * @param interceptor 未登录拦截器回调，当检测到未登录错误码时会调用此回调
          * @param unauthorizedCodes 未登录错误码集合，默认为 {401}
          * @param interceptWindowMillis 拦截时间窗口（毫秒），在此时间窗口内只拦截一次，默认 5 秒
+         * @return LoginInterceptorConfig 配置对象，支持链式调用
          * 
-         * 使用示例：
+         * 使用示例（链式调用）：
+         * ```kotlin
+         * BaseRepository.setLoginInterceptor(
+         *     object : LoginInterceptor {
+         *         override fun onUnauthorized(errorCode: Int, errorMessage: String) {
+         *             // 清除登录信息
+         *             UserManager.clearUserInfo()
+         *             // 跳转到登录页面
+         *             startActivity(Intent(context, LoginActivity::class.java))
+         *         }
+         *     }
+         * ).unauthorizedCodes(setOf(1001))
+         *  .interceptWindowMillis(3000)
+         * ```
+         * 
+         * 使用示例（传统方式，也支持链式调用）：
          * ```kotlin
          * BaseRepository.setLoginInterceptor(
          *     interceptor = object : LoginInterceptor {
@@ -97,13 +145,15 @@ abstract class BaseRepository {
             interceptor: LoginInterceptor,
             unauthorizedCodes: Set<Int> = setOf(401),
             interceptWindowMillis: Long = 5000
-        ) {
-            this.loginInterceptor = interceptor
+        ): LoginInterceptorConfig {
+            loginInterceptor = interceptor
             this.unauthorizedCodes = unauthorizedCodes
             this.interceptWindowMillis = interceptWindowMillis
             // 重置拦截状态
             lastInterceptTime.set(0)
             isIntercepting.set(false)
+            // 返回配置对象，支持链式调用（值已设置，链式调用可以覆盖）
+            return LoginInterceptorConfig.create(interceptor)
         }
         
         /**
