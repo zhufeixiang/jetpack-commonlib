@@ -138,6 +138,9 @@ abstract class MviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S : ViewStat
 
     /**
      * 显示 Toast（默认实现，子类可以重写）
+     * 
+     * 子类需要实现此方法来显示 Toast
+     * 可以根据项目需求使用自定义 Toast 样式
      */
     protected open fun showToast(message: String) {
         // 默认实现，子类可以重写
@@ -145,6 +148,9 @@ abstract class MviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S : ViewStat
 
     /**
      * 显示错误（默认实现，子类可以重写）
+     * 
+     * 子类需要实现此方法来显示错误
+     * 可以根据项目需求使用自定义错误提示样式
      */
     protected open fun showError(message: String) {
         // 默认实现，子类可以重写

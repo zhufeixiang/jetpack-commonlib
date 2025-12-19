@@ -1,5 +1,8 @@
 package com.zfx.commonlib.mvi
 
+import com.zfx.commonlib.R
+import com.zfx.commonlib.util.StringResourceHelper
+
 /**
  * ViewState 接口
  * MVI 架构中的状态接口，所有状态都应该实现此接口
@@ -39,7 +42,7 @@ data class BaseViewState(
     /**
      * 加载提示信息
      */
-    val loadingMessage: String = "加载中...",
+    val loadingMessage: String = StringResourceHelper.getString(R.string.state_loading),
     
     /**
      * 错误信息
@@ -54,7 +57,7 @@ data class BaseViewState(
     /**
      * 显示加载状态
      */
-    fun showLoading(message: String = "加载中..."): BaseViewState {
+    fun showLoading(message: String = StringResourceHelper.getString(R.string.state_loading)): BaseViewState {
         return copy(
             isLoading = true,
             loadingMessage = message,

@@ -41,5 +41,8 @@
     <string name="error_unknown_error_ext">Unknown error</string>
     <string name="error_request_timeout_ext">Request timeout</string>
     <string name="error_illegal_state">Should not reach here</string>
+    
+    <!-- BaseViewState Related -->
+    <string name="state_loading">Loading...</string>
 </resources>
 

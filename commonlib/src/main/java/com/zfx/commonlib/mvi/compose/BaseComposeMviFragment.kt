@@ -45,8 +45,8 @@ abstract class BaseComposeMviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        return ComposeView(requireContext()).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        return createComposeView().apply {
+            setViewCompositionStrategy(getViewCompositionStrategy())
             setContent {
                 val state by viewModel.state.collectAsState()
                 ObserveSingleEvents()
@@ -55,6 +55,29 @@ abstract class BaseComposeMviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S
                 }
             }
         }
+    }
+
+    /**
+     * 创建 ComposeView
+     * 子类可以重写此方法来自定义 ComposeView 的创建
+     * 
+     * 例如：设置主题、系统 UI 等
+     */
+    protected open fun createComposeView(): ComposeView {
+        return ComposeView(requireContext())
+    }
+
+    /**
+     * 获取 ViewCompositionStrategy
+     * 子类可以重写此方法来使用不同的策略
+     * 
+     * 可选策略：
+     * - DisposeOnViewTreeLifecycleDestroyed：当 View 树生命周期销毁时释放（推荐用于 Fragment）
+     * - DisposeOnLifecycleDestroyed：当 Fragment 生命周期销毁时释放
+     * - DisposeOnDetachedFromWindow：当 View 从窗口分离时释放
+     */
+    protected open fun getViewCompositionStrategy(): ViewCompositionStrategy {
+        return ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
     }
 
     /**
@@ -90,14 +113,24 @@ abstract class BaseComposeMviFragment<VM : MviViewModel<I, S>, I : ViewIntent, S
     }
 
     /**
-     * 显示 Toast（默认空实现）
+     * 显示 Toast（默认实现，子类可以重写）
+     * 
+     * 子类需要实现此方法来显示 Toast
+     * 可以根据项目需求使用自定义 Toast 样式或 Snackbar
      */
-    protected open fun showToast(message: String) {}
+    protected open fun showToast(message: String) {
+        // 默认实现，子类可以重写
+    }
 
     /**
-     * 显示错误（默认空实现）
+     * 显示错误（默认实现，子类可以重写）
+     * 
+     * 子类需要实现此方法来显示错误
+     * 可以根据项目需求使用自定义错误提示样式或 Snackbar
      */
-    protected open fun showError(message: String) {}
+    protected open fun showError(message: String) {
+        // 默认实现，子类可以重写
+    }
 
     /**
      * 导航（默认空实现）

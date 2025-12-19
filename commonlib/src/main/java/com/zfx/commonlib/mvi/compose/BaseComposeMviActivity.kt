@@ -77,14 +77,24 @@ abstract class BaseComposeMviActivity<VM : MviViewModel<I, S>, I : ViewIntent, S
     }
 
     /**
-     * 显示 Toast（默认空实现）
+     * 显示 Toast（默认实现，子类可以重写）
+     * 
+     * 子类需要实现此方法来显示 Toast
+     * 可以根据项目需求使用自定义 Toast 样式或 Snackbar
      */
-    protected open fun showToast(message: String) {}
+    protected open fun showToast(message: String) {
+        // 默认实现，子类可以重写
+    }
 
     /**
-     * 显示错误（默认空实现）
+     * 显示错误（默认实现，子类可以重写）
+     * 
+     * 子类需要实现此方法来显示错误
+     * 可以根据项目需求使用自定义错误提示样式或 Snackbar
      */
-    protected open fun showError(message: String) {}
+    protected open fun showError(message: String) {
+        // 默认实现，子类可以重写
+    }
 
     /**
      * 导航（默认空实现）
