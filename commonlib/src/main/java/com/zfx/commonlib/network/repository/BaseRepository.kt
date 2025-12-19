@@ -8,8 +8,11 @@ import com.zfx.commonlib.network.result.NetworkResult
 import com.zfx.commonlib.util.StringResourceHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.zip
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -391,6 +394,85 @@ abstract class BaseRepository {
                 error = e,
                 code = errorCode,
                 message = errorMessage
+            ))
+        }
+    }.flowOn(Dispatchers.IO)
+    
+    /**
+     * 组合两个网络请求（并行执行）
+     * 同时执行两个网络请求，等待两个请求都完成后组装结果
+     * 
+     * @param flow1 第一个网络请求的 Flow
+     * @param flow2 第二个网络请求的 Flow
+     * @param combine 组合函数，将两个请求的结果组装成最终数据
+     * @param showLoading 是否显示加载状态，默认为 true
+     * @param loadingMessage 加载提示信息
+     * @return Flow<NetworkResult<R>> 组合后的网络请求结果流
+     * 
+     * 使用示例：
+     * ```kotlin
+     * // 同时获取用户信息和用户订单列表
+     * fun getUserData(): Flow<NetworkResult<UserData>> {
+     *     return combineRequests(
+     *         flow1 = getUserInfo(),
+     *         flow2 = getOrderList(),
+     *         combine = { userInfo, orderList ->
+     *             UserData(userInfo, orderList)
+     *         }
+     *     )
+     * }
+     * ```
+     */
+    protected fun <T1, T2, R> combineRequests(
+        flow1: Flow<NetworkResult<T1>>,
+        flow2: Flow<NetworkResult<T2>>,
+        combine: (T1, T2) -> R,
+        showLoading: Boolean = true,
+        loadingMessage: String = StringResourceHelper.getString(R.string.network_requesting)
+    ): Flow<NetworkResult<R>> = flow {
+        try {
+            if (showLoading) {
+                emit(NetworkResult.Loading(loadingMessage))
+            }
+            
+            // 使用 zip 操作符组合两个 Flow
+            // 先过滤出 Success 或 Error 状态（跳过 Loading）
+            flow1
+                .filter { it is NetworkResult.Success || it is NetworkResult.Error }
+                .zip(
+                    flow2.filter { it is NetworkResult.Success || it is NetworkResult.Error }
+                ) { result1, result2 ->
+                    when {
+                        // 如果两个请求都成功，组合数据
+                        result1 is NetworkResult.Success && result2 is NetworkResult.Success -> {
+                            NetworkResult.Success(combine(result1.data, result2.data))
+                        }
+                        // 如果第一个请求失败，返回第一个错误
+                        result1 is NetworkResult.Error -> {
+                            result1
+                        }
+                        // 如果第二个请求失败，返回第二个错误
+                        result2 is NetworkResult.Error -> {
+                            result2
+                        }
+                        // 理论上不会到达这里（因为已经过滤了）
+                        else -> {
+                            NetworkResult.Error(
+                                message = StringResourceHelper.getString(R.string.error_unknown_error)
+                            )
+                        }
+                    }
+                }
+                .collect { result ->
+                    emit(result as NetworkResult<R>)
+                }
+            
+        } catch (e: Exception) {
+            val appException = ExceptionHandle.handleException(e)
+            emit(NetworkResult.Error(
+                error = e,
+                code = appException.errCode,
+                message = appException.errorMsg
             ))
         }
     }.flowOn(Dispatchers.IO)

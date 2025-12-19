@@ -32,6 +32,7 @@
     <!-- Network Request Related -->
     <string name="network_requesting">Requesting...</string>
     <string name="network_data_empty">Data is empty</string>
+    <string name="network_request_failed">Request failed</string>
     
     <!-- AppException Default Message -->
     <string name="exception_default_message">Request failed, please try again later</string>

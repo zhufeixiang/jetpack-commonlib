@@ -224,6 +224,36 @@ fun clearAllDomains() {
  * 这是一个便捷的扩展函数，可以直接在 Repository 中使用
  * 
  * 支持任何实现了 IBaseResponse 接口的响应类型
+ * 
+ * 使用示例：
+ * ```kotlin
+ * // 示例1：从缓存获取数据并转换
+ * fun getUserInfoFromCache(): Flow<NetworkResult<UserInfo>> {
+ *     return flow {
+ *         val cached = cacheManager.getUserInfo()
+ *         if (cached != null) {
+ *             emit(BaseResponse(code = 200, data = cached))
+ *         }
+ *     }.asNetworkResult()
+ * }
+ * 
+ * // 示例2：组合多个数据源
+ * fun getUserInfoWithRetry(): Flow<NetworkResult<UserInfo>> {
+ *     return flow {
+ *         emit(apiService.getUserInfo())
+ *     }
+ *     .retry(3)
+ *     .asNetworkResult(showLoading = true)
+ * }
+ * 
+ * // 示例3：从数据库获取并转换
+ * fun getUserInfoFromDB(): Flow<NetworkResult<UserInfo>> {
+ *     return database.userDao()
+ *         .getUserInfoFlow()
+ *         .map { BaseResponse(code = 200, data = it) }
+ *         .asNetworkResult(showLoading = false)
+ * }
+ * ```
  */
 fun <T, R : IBaseResponse<T>> Flow<R>.asNetworkResult(
     showLoading: Boolean = true,
@@ -269,7 +299,10 @@ fun <T, R : IBaseResponse<T>> Flow<R>.asNetworkResult(
 fun <T> Flow<NetworkResult<T>>.handleError(
     onError: (NetworkResult.Error) -> Unit
 ): Flow<NetworkResult<T>> = catch { e ->
-    onError(NetworkResult.Error(error = e, message = e.message ?: "未知错误"))
+    onError(NetworkResult.Error(
+        error = e,
+        message = e.message ?: StringResourceHelper.getString(R.string.error_unknown_error)
+    ))
 }
 
 /**
