@@ -738,7 +738,7 @@ data class MyResponse<T>(
     
     override fun getResponseMsg(): String = msg
     
-    override fun getData(): T? = result
+    override fun getDataOrNull(): T? = result
 }
 
 // 在 API 接口中使用

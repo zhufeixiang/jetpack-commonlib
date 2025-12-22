@@ -3,6 +3,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.plugin.compose'
     id 'kotlin-kapt'
+    // KSP 版本：Kotlin 2.3.0 对应的 KSP 版本可能还未发布，暂时使用 2.0.21 版本（通常向后兼容）
+    // 如果编译有问题，可以尝试移除 KSP 或等待 KSP 2.3.0 版本发布
     id 'com.google.devtools.ksp' version '2.0.21-1.0.28'
     id 'maven-publish'
 }
@@ -28,11 +30,11 @@ afterEvaluate {
 
 android {
     namespace 'com.zfx.commonlib'
-    compileSdk 33
+    compileSdk 36
 
     defaultConfig {
         minSdk 21
-        targetSdk 33
+        targetSdk 36
         versionCode 3
         versionName '2.0.0'
 
@@ -57,7 +59,12 @@ android {
         dataBinding = true
         compose = true
     }
-    // Kotlin 2.0+ 使用 Compose Compiler Gradle 插件，不再需要 composeOptions
+
+    packaging {
+        resources {
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
+    }
 }
 
 dependencies {
@@ -78,7 +85,7 @@ dependencies {
     // OkHttp 日志拦截器：用于网络请求日志输出，方便调试
     implementation 'com.squareup.okhttp3:logging-interceptor:5.3.2'
     // Retrofit：类型安全的 HTTP 客户端，用于定义和调用 REST API
-    implementation 'com.squareup.retrofit2:retrofit:3.0.0'
+    api 'com.squareup.retrofit2:retrofit:3.0.0'
     // Retrofit Gson 转换器：将 JSON 响应自动转换为 Kotlin 数据类
     implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
     // Retrofit 3.0.0+ 已内置协程支持，无需 retrofit2-kotlin-coroutines-adapter
@@ -101,6 +108,8 @@ dependencies {
     api 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4'
     // Lifecycle LiveData KTX：提供 LiveData 与协程的互操作支持
     api 'androidx.lifecycle:lifecycle-livedata-ktx:2.9.4'
+    // Lifecycle ViewModel Compose：提供 viewModel() 函数用于 Compose
+    api 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
     
     // ========== Activity/Fragment KTX ==========
     // Activity KTX：提供 Activity 的 Kotlin 扩展函数（如 viewModels()、activityViewModels()）

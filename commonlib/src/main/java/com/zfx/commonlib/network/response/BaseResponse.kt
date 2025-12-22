@@ -48,8 +48,9 @@ interface IBaseResponse<T> {
     
     /**
      * 获取响应数据（可能为空）
+     * 注意：改名为 getDataOrNull() 以避免与数据类属性的 getData() getter 冲突
      */
-    fun getData(): T?
+    fun getDataOrNull(): T?
 }
 
 /**
@@ -83,7 +84,7 @@ interface IBaseResponse<T> {
  *     override fun getErrorMessage(): String = msg.ifEmpty { "未知错误" }
  *     override fun getResponseCode(): Int = status
  *     override fun getResponseMsg(): String = msg
- *     override fun getData(): T? = result
+ *     override fun getDataOrNull(): T? = result
  * }
  * ```
  * 
@@ -189,11 +190,11 @@ data class BaseResponse<T>(
      * 获取响应消息
      */
     override fun getResponseMsg(): String = message
-    
+
     /**
      * 获取响应数据（可能为空）
      */
-    override fun getData(): T? = data
+    override fun getDataOrNull(): T? = data
 }
 
 

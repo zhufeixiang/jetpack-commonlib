@@ -31,7 +31,7 @@ class ApiResponse<T>(
         return errorMsg
     }
 
-    override fun getData(): T? {
+    override fun getDataOrNull(): T? {
         return data
     }
 }

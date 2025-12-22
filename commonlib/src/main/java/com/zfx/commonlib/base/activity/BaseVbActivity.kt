@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewbinding.ViewBinding
+import com.zfx.commonlib.ext.util.notNull
 
 /**
  * author: zhufeixiang
@@ -13,12 +14,13 @@ import androidx.viewbinding.ViewBinding
  */
 abstract class BaseVbActivity<VB : ViewBinding> : AppCompatActivity() {
 
-
     lateinit var mViewBind: VB
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(initDataBind())
+        initDataBind().notNull({
+            setContentView(it)
+        })
         init(savedInstanceState)
     }
 
@@ -27,7 +29,10 @@ abstract class BaseVbActivity<VB : ViewBinding> : AppCompatActivity() {
      */
     protected abstract fun initBinding(layoutInflater: LayoutInflater): VB
 
-    private fun initDataBind(): View {
+    /**
+     * 初始化 DataBinding，返回 ViewBinding 的 root View
+     */
+    open fun initDataBind(): View? {
         mViewBind = initBinding(layoutInflater)
         return mViewBind.root
     }
