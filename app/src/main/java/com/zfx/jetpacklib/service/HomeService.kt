@@ -1,8 +1,8 @@
 package com.zfx.jetpacklib.service
 
-import com.zfx.commonlib.network.response.BaseResponse
 import com.zfx.jetpacklib.data.ArticlePageData
 import com.zfx.jetpacklib.data.BannerItem
+import com.zfx.jetpacklib.network.ApiResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
 
@@ -12,8 +12,8 @@ import retrofit2.http.Path
 interface HomeService {
 
     @GET("banner/json")
-    suspend fun getBanner() : BaseResponse<List<BannerItem>>
+    suspend fun getBanner() : ApiResponse<List<BannerItem>>
 
     @GET("article/list/{page}/json")
-    suspend fun getArticleList(@Path("page") page : Int) : BaseResponse<ArticlePageData>
+    suspend fun getArticleList(@Path("page") page : Int) : ApiResponse<ArticlePageData>
 }

@@ -46,6 +46,7 @@ import com.zfx.jetpacklib.data.Article
  * @param data 文章列表数据
  * @param isLoading 是否正在加载更多
  * @param hasMore 是否还有更多数据
+ * @param header 列表头部内容（如 Banner）
  * @param onLoadMore 加载更多回调（当滚动到底部时触发）
  * @param onItemClick 文章项点击回调
  * @param onFavoriteClick 收藏点击回调
@@ -56,6 +57,7 @@ fun ArticleList(
     data: List<Article>,
     isLoading: Boolean = false,
     hasMore: Boolean = true,
+    header: (@Composable () -> Unit)? = null,
     onLoadMore: () -> Unit = {},
     onItemClick: (Article) -> Unit = {},
     onFavoriteClick: (Article) -> Unit = {}
@@ -80,8 +82,8 @@ fun ArticleList(
         }
     }
     
-    if (data.isEmpty()) {
-        // 空列表状态
+    if (data.isEmpty() && header == null) {
+        // 空列表状态（只有在没有 header 时才显示）
         Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -97,8 +99,16 @@ fun ArticleList(
         LazyColumn(
             modifier = modifier,
             state = listState,
-            contentPadding = PaddingValues(vertical = 8.dp)
+            contentPadding = PaddingValues(bottom = 8.dp)
         ) {
+            // 头部内容（如 Banner）
+            if (header != null) {
+                item {
+                    header()
+                }
+            }
+            
+            // 文章列表项
             items(
                 items = data,
                 key = { article -> article.id } // 使用唯一 ID 作为 key，提升性能
@@ -186,7 +196,11 @@ fun ArticleItem(
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .align(Alignment.CenterVertically),
-                    text = data.author,
+                    text = if (data.author.isNotEmpty()){
+                        "作者:${data.author}"
+                    }else{
+                        "分享人:${data.shareUser}"
+                    },
                     fontSize = 12.sp,
                     color = colorResource(id = R.color.black)
                 )
@@ -210,7 +224,7 @@ fun ArticleItem(
                     .fillMaxWidth()
                     .align(Alignment.CenterHorizontally),
                 text = data.title,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = colorResource(id = R.color.black)
             )
@@ -223,7 +237,7 @@ fun ArticleItem(
                     modifier = Modifier
                         .align(Alignment.CenterVertically),
                     text = "${data.chapterName}/${data.superChapterName}",
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     color = colorResource(id = R.color.nav_selected)
                 )
                 Spacer(

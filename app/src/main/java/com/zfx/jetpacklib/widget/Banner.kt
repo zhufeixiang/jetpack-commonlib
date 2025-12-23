@@ -64,12 +64,13 @@ fun <T> Banner(
             pageContent(items[page])
         }
         if (showIndicator && indicator != null){
-            // indicator 覆盖在 content 上方，默认底部居中，距离底部 16dp
+            // indicator 覆盖在 content 上方，默认底部居中
+            // 距离底部 52dp（避开底部标题栏 36dp + 间距 16dp）
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.BottomCenter
             ) {
                 indicator(pagerState.currentPage, items.size)
             }
