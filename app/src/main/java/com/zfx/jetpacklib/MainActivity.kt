@@ -4,13 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -20,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import com.zfx.jetpacklib.feature.home.ui.HomeScreen
 import com.zfx.jetpacklib.feature.knowledge.ui.KnowledgeScreen
@@ -84,20 +88,14 @@ class MainActivity : ComponentActivity(){
     @Composable
     private fun BottomNavigation(modifier: Modifier = Modifier,selectedTab: Int, onTabSelected: (Int) -> Unit){
         NavigationBar(
-            modifier = modifier
+            modifier = modifier.height(56.dp)
         ) {
             NavigationBarItem(
                 selected = selectedTab == 0,
                 onClick = { onTabSelected(0) },
                 icon = {
                     Icon(
-                        painter = painterResource(
-                            id = if (selectedTab == 0) {
-                                R.drawable.icon_menu_home_blue
-                            } else {
-                                R.drawable.icon_menu_home_grey
-                            }
-                        ),
+                        painter = painterResource(id = R.drawable.icon_menu_home_grey),
                         contentDescription = null
                     )
                 },
@@ -112,20 +110,21 @@ class MainActivity : ComponentActivity(){
                             }
                         )
                     )
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = colorResource(id = R.color.nav_selected),
+                    selectedTextColor = colorResource(id = R.color.nav_selected),
+                    indicatorColor = Color.Transparent,
+                    unselectedIconColor = colorResource(id = R.color.nav_unselected),
+                    unselectedTextColor = colorResource(id = R.color.nav_unselected)
+                )
             )
             NavigationBarItem(
                 selected = selectedTab == 1,
                 onClick = { onTabSelected(1) },
                 icon = {
                     Icon(
-                        painter = painterResource(
-                            id = if (selectedTab == 1) {
-                                R.drawable.icon_menu_knowledge_blue
-                            } else {
-                                R.drawable.icon_menu_knowledge_grey
-                            }
-                        ),
+                        painter = painterResource(id = R.drawable.icon_menu_knowledge_grey),
                         contentDescription = null
                     )
                 },
@@ -140,7 +139,14 @@ class MainActivity : ComponentActivity(){
                             }
                         )
                     )
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = colorResource(id = R.color.nav_selected),
+                    selectedTextColor = colorResource(id = R.color.nav_selected),
+                    indicatorColor = Color.Transparent,
+                    unselectedIconColor = colorResource(id = R.color.nav_unselected),
+                    unselectedTextColor = colorResource(id = R.color.nav_unselected)
+                )
             )
         }
     }

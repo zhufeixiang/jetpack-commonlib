@@ -13,4 +13,5 @@
     <color name="nav_unselected">#FF8A8A8A</color>
     <color name="color_FFF7F7F7">#FFF7F7F7</color>
     <color name="color_808A8A8A">#808A8A8A</color>
+    <color name="theme">#FF1296DB</color>
 </resources>
