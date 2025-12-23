@@ -3,9 +3,16 @@ package com.zfx.jetpacklib
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -25,7 +32,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.unit.sp
+import com.blankj.utilcode.util.ToastUtils
 import com.zfx.jetpacklib.feature.home.ui.HomeScreen
 import com.zfx.jetpacklib.feature.knowledge.ui.KnowledgeScreen
 
@@ -68,6 +78,9 @@ class MainActivity : ComponentActivity(){
     private fun AppPortrait() {
         var selectedTab by remember { mutableStateOf(0) }
         Scaffold(
+            topBar = {
+                TopBar(selectedTab)
+            },
             bottomBar = {
                 BottomNavigation(
                     selectedTab = selectedTab,
@@ -83,6 +96,74 @@ class MainActivity : ComponentActivity(){
             }
         }
 
+    }
+
+    @Composable
+    fun TopBar(selectedTab: Int) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(
+                    color = colorResource(R.color.theme)
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(
+                Modifier.size(24.dp)
+            )
+
+            Image(
+                painter = painterResource(R.drawable.icon_menu_white),
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable{ ToastUtils.showShort("点记了目录") },
+                contentDescription = "目录",
+            )
+
+            Spacer(
+                Modifier.size(24.dp)
+            )
+
+            Text(
+                text = if(selectedTab == 0){
+                    "玩Android"
+                }else{
+                    "知识体系"
+                },
+                color = colorResource(R.color.white),
+                fontSize = 18.sp
+            )
+
+            Spacer(
+                Modifier.weight(1f)
+            )
+
+            Image(
+                painter = painterResource(R.drawable.icon_hot_white),
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable{ ToastUtils.showShort("点记了热点") },
+                contentDescription = "热点"
+            )
+
+            Spacer(
+                Modifier.size(24.dp)
+            )
+
+            Image(
+                painter = painterResource(R.drawable.icon_search_white),
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable{ ToastUtils.showShort("点记了搜索") },
+                contentDescription = "搜索"
+            )
+
+            Spacer(
+                Modifier.size(24.dp)
+            )
+
+        }
     }
 
     @Composable
