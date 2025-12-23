@@ -1,7 +1,7 @@
 package com.zfx.commonlib.network.config
 
+import com.zfx.commonlib.network.interceptor.LoggingInterceptor
 import okhttp3.Interceptor
-import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
 
 /**
@@ -37,7 +37,7 @@ data class NetworkConfig(
     /**
      * 日志级别
      */
-    val logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterceptor.Level.BODY,
+    val logLevel: LoggingInterceptor.LogLevel = LoggingInterceptor.LogLevel.BODY,
     
     /**
      * 自定义拦截器列表
@@ -79,7 +79,7 @@ data class NetworkConfig(
             return NetworkConfig(
                 baseUrl = baseUrl,
                 enableLogging = true,
-                logLevel = HttpLoggingInterceptor.Level.BODY
+                logLevel = LoggingInterceptor.LogLevel.BODY
             )
         }
         
@@ -90,7 +90,7 @@ data class NetworkConfig(
             return NetworkConfig(
                 baseUrl = baseUrl,
                 enableLogging = false,
-                logLevel = HttpLoggingInterceptor.Level.NONE
+                logLevel = LoggingInterceptor.LogLevel.NONE
             )
         }
     }
@@ -106,7 +106,7 @@ class NetworkConfigBuilder {
     private var readTimeout: Long = 30L
     private var writeTimeout: Long = 30L
     private var enableLogging: Boolean = true
-    private var logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterceptor.Level.BODY
+    private var logLevel: LoggingInterceptor.LogLevel = LoggingInterceptor.LogLevel.BODY
     private val interceptors = mutableListOf<Interceptor>()
     private val networkInterceptors = mutableListOf<Interceptor>()
     private var enableCache: Boolean = false
@@ -118,7 +118,7 @@ class NetworkConfigBuilder {
     fun readTimeout(timeout: Long) = apply { this.readTimeout = timeout }
     fun writeTimeout(timeout: Long) = apply { this.writeTimeout = timeout }
     fun enableLogging(enable: Boolean) = apply { this.enableLogging = enable }
-    fun logLevel(level: HttpLoggingInterceptor.Level) = apply { this.logLevel = level }
+    fun logLevel(level: LoggingInterceptor.LogLevel) = apply { this.logLevel = level }
     fun addInterceptor(interceptor: Interceptor) = apply { this.interceptors.add(interceptor) }
     fun addNetworkInterceptor(interceptor: Interceptor) = apply { this.networkInterceptors.add(interceptor) }
     fun enableCache(enable: Boolean) = apply { this.enableCache = enable }

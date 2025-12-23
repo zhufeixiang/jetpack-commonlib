@@ -1,5 +1,7 @@
 package com.zfx.commonlib.network.config
 
+import com.zfx.commonlib.network.interceptor.LoggingInterceptor
+
 /**
  * 网络环境枚举
  * 支持开发、预发布、生产三种环境
@@ -44,7 +46,7 @@ data class EnvironmentConfig(
     /**
      * 日志级别
      */
-    val logLevel: okhttp3.logging.HttpLoggingInterceptor.Level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY,
+    val logLevel: LoggingInterceptor.LogLevel = LoggingInterceptor.LogLevel.BODY,
     
     /**
      * 连接超时时间（秒）
@@ -112,7 +114,7 @@ data class EnvironmentConfig(
 class EnvironmentConfigBuilder(private val environment: NetworkEnvironment) {
     private var baseUrl: String = ""
     private var enableLogging: Boolean = true
-    private var logLevel: okhttp3.logging.HttpLoggingInterceptor.Level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+    private var logLevel: LoggingInterceptor.LogLevel = LoggingInterceptor.LogLevel.BODY
     private var connectTimeout: Long = 30L
     private var readTimeout: Long = 30L
     private var writeTimeout: Long = 30L
@@ -124,7 +126,7 @@ class EnvironmentConfigBuilder(private val environment: NetworkEnvironment) {
     
     fun baseUrl(url: String) = apply { this.baseUrl = url }
     fun enableLogging(enable: Boolean) = apply { this.enableLogging = enable }
-    fun logLevel(level: okhttp3.logging.HttpLoggingInterceptor.Level) = apply { this.logLevel = level }
+    fun logLevel(level: LoggingInterceptor.LogLevel) = apply { this.logLevel = level }
     fun connectTimeout(timeout: Long) = apply { this.connectTimeout = timeout }
     fun readTimeout(timeout: Long) = apply { this.readTimeout = timeout }
     fun writeTimeout(timeout: Long) = apply { this.writeTimeout = timeout }

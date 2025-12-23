@@ -4,10 +4,10 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.zfx.commonlib.network.config.NetworkConfig
 import me.jessyan.retrofiturlmanager.RetrofitUrlManager
+import com.zfx.commonlib.network.interceptor.LoggingInterceptor
 import okhttp3.Cache
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
@@ -85,9 +85,10 @@ class NetworkManager private constructor() {
         
         // 添加日志拦截器
         if (config.enableLogging) {
-            val loggingInterceptor = HttpLoggingInterceptor().apply {
+            val loggingInterceptor = LoggingInterceptor(
+                tag = "OkHttp",
                 level = config.logLevel
-            }
+            )
             builder.addInterceptor(loggingInterceptor)
         }
         

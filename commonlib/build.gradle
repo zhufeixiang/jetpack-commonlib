@@ -60,11 +60,6 @@ android {
         compose = true
     }
 
-    packaging {
-        resources {
-            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
-        }
-    }
 }
 
 dependencies {
@@ -82,8 +77,6 @@ dependencies {
     // ========== 网络请求库 ==========
     // OkHttp：HTTP 客户端，Retrofit 的底层实现
     implementation 'com.squareup.okhttp3:okhttp:5.3.2'
-    // OkHttp 日志拦截器：用于网络请求日志输出，方便调试
-    implementation 'com.squareup.okhttp3:logging-interceptor:5.3.2'
     // Retrofit：类型安全的 HTTP 客户端，用于定义和调用 REST API
     api 'com.squareup.retrofit2:retrofit:3.0.0'
     // Retrofit Gson 转换器：将 JSON 响应自动转换为 Kotlin 数据类
