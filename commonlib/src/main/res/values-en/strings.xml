@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">commonlib</string>
+
     
     <!-- Network Error Related -->
     <string name="error_unknown">Request failed, please try again later</string>
