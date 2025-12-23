@@ -177,6 +177,8 @@ dependencies {
     api 'androidx.compose.ui:ui-tooling-preview'
     // Compose Material3：Material Design 3 组件库
     api 'androidx.compose.material3:material3'
+    // Compose Material：Material Design 组件库（用于 pull-to-refresh 功能）
+    api 'androidx.compose.material:material:1.5.4'
     // Activity Compose：提供 Activity 与 Compose 的集成支持（setContent 等）
     api 'androidx.activity:activity-compose:1.9.0'
     // Lifecycle Runtime Compose：提供 Lifecycle 与 Compose 的集成支持

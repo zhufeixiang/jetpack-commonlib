@@ -30,10 +30,17 @@ fun HomeScreen(
 ){
     val bannerList  by viewModel.bannerList.collectAsState()
     val articleList by viewModel.articleList.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val hasMore by viewModel.hasMore.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     ArticleList(
         modifier = modifier.fillMaxWidth(),
         data = articleList,
+        isLoading = isLoading,
+        hasMore = hasMore,
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.refresh() },
         header = if (bannerList.isNotEmpty()) {
             {
                 Banner(
@@ -66,6 +73,7 @@ fun HomeScreen(
                 )
             }
         } else null,
+        onLoadMore = { viewModel.loadMore() },
         onFavoriteClick = { article ->
             ToastUtils.showShort("收藏文章：${article.title}")
         },

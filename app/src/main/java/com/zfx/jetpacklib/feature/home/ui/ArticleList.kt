@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -40,48 +44,59 @@ import com.zfx.jetpacklib.data.Article
 
 
 /**
- * 文章列表组件（支持分页加载）
+ * 文章列表组件（支持分页加载和下拉刷新）
  * 
  * @param modifier 修饰符
  * @param data 文章列表数据
  * @param isLoading 是否正在加载更多
  * @param hasMore 是否还有更多数据
+ * @param isRefreshing 是否正在刷新
  * @param header 列表头部内容（如 Banner）
  * @param onLoadMore 加载更多回调（当滚动到底部时触发）
+ * @param onRefresh 下拉刷新回调
  * @param onItemClick 文章项点击回调
  * @param onFavoriteClick 收藏点击回调
  */
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ArticleList(
     modifier: Modifier = Modifier.fillMaxWidth(),
     data: List<Article>,
     isLoading: Boolean = false,
     hasMore: Boolean = true,
+    isRefreshing: Boolean = false,
     header: (@Composable () -> Unit)? = null,
     onLoadMore: () -> Unit = {},
+    onRefresh: () -> Unit = {},
     onItemClick: (Article) -> Unit = {},
     onFavoriteClick: (Article) -> Unit = {}
 ) {
     val listState = rememberLazyListState()
-    
+
+    // 下拉刷新状态
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = onRefresh
+    )
+
     // 监听滚动到底部，自动加载更多
     val shouldLoadMore by remember {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
             val totalItemsCount = layoutInfo.totalItemsCount
             val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            
+
             // 当滚动到倒数第 3 个 item 时，触发加载更多（提前加载，提升体验）
             totalItemsCount > 0 && lastVisibleItemIndex >= totalItemsCount - 3
         }
     }
-    
+
     LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore && !isLoading && hasMore) {
+        if (shouldLoadMore && !isLoading && hasMore && !isRefreshing) {
             onLoadMore()
         }
     }
-    
+
     if (data.isEmpty() && header == null) {
         // 空列表状态（只有在没有 header 时才显示）
         Box(
@@ -96,67 +111,78 @@ fun ArticleList(
             )
         }
     } else {
-        LazyColumn(
-            modifier = modifier,
-            state = listState,
-            contentPadding = PaddingValues(bottom = 8.dp)
-        ) {
-            // 头部内容（如 Banner）
-            if (header != null) {
-                item {
-                    header()
+        Box(modifier = modifier) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pullRefresh(pullRefreshState),
+                state = listState,
+                contentPadding = PaddingValues(bottom = 8.dp)
+            ) {
+                // 头部内容（如 Banner）
+                if (header != null) {
+                    item {
+                        header()
+                    }
+                }
+
+                // 文章列表项
+                items(
+                    items = data,
+                    key = { article -> article.id } // 使用唯一 ID 作为 key，提升性能
+                ) { article ->
+                    ArticleItem(
+                        data = article,
+                        favoriteClick = { onFavoriteClick(article) },
+                        cardClick = { onItemClick(article) }
+                    )
+                }
+
+                // 加载更多指示器
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = colorResource(id = R.color.nav_selected)
+                            )
+                        }
+                    }
+                } else if (!hasMore && data.isNotEmpty()) {
+                    // 没有更多数据提示
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "没有更多数据了",
+                                fontSize = 14.sp,
+                                color = colorResource(id = R.color.nav_unselected),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
             
-            // 文章列表项
-            items(
-                items = data,
-                key = { article -> article.id } // 使用唯一 ID 作为 key，提升性能
-            ) { article ->
-                ArticleItem(
-                    data = article,
-                    favoriteClick = { onFavoriteClick(article) },
-                    cardClick = { onItemClick(article) }
-                )
-            }
-            
-            // 加载更多指示器
-            if (isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = colorResource(id = R.color.nav_selected)
-                        )
-                    }
-                }
-            } else if (!hasMore && data.isNotEmpty()) {
-                // 没有更多数据提示
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "没有更多数据了",
-                            fontSize = 14.sp,
-                            color = colorResource(id = R.color.nav_unselected),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
+            // 下拉刷新指示器
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
-}
 
+}
 
 @Composable
 fun ArticleItem(
