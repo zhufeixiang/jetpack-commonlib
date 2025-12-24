@@ -1,18 +1,45 @@
-Step 1. Add the JitPack repository to your build file
- Add it in your root build.gradle at the end of repositories:
+## 快速开始
 
-	dependencyResolutionManagement {
-		repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-		repositories {
-			mavenCentral()
-			maven { url 'https://jitpack.io' }
-		}
-	}
-Step 2. Add the dependency
+### Step 1. 添加 JitPack 仓库
 
-	dependencies {
-	        implementation 'com.github.zhufeixiang:jetpack-commonlib:Tag'
-	}
+在项目的 `build.gradle` 或 `settings.gradle` 中添加：
+
+```gradle
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+### Step 2. 添加依赖
+
+```gradle
+dependencies {
+    implementation 'com.github.zhufeixiang:jetpack-commonlib:Tag'
+}
+```
+
+### Step 3. 添加权限（必须）
+
+**重要**：库模块不会声明权限，需要在使用该库的应用中声明。
+
+在应用的 `AndroidManifest.xml` 中添加：
+
+```xml
+<!-- 网络请求权限（必须，如果使用网络功能） -->
+<uses-permission android:name="android.permission.INTERNET" />
+
+<!-- 网络状态检查权限（可选，如果需要检查网络状态） -->
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+```
+
+**说明**：
+- `INTERNET` 权限是**必须的**（如果使用网络请求功能）
+- `ACCESS_NETWORK_STATE` 权限是**可选的**（仅当需要检查网络状态时）
+- 这些是普通权限，不需要运行时请求
 
 ## 更新日志
 

@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 
+        注意：库模块不应该声明权限，权限应该由使用该库的应用来声明。
+        
+        如果使用 commonlib 的网络功能，应用需要在 AndroidManifest.xml 中添加：
+        <uses-permission android:name="android.permission.INTERNET" />
+        
+        如果需要检查网络状态，可以添加（可选）：
+        <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    -->
 </manifest>

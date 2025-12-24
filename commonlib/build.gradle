@@ -3,9 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.plugin.compose'
     id 'kotlin-kapt'
-    // KSP 版本：Kotlin 2.3.0 对应的 KSP 版本可能还未发布，暂时使用 2.0.21 版本（通常向后兼容）
-    // 如果编译有问题，可以尝试移除 KSP 或等待 KSP 2.3.0 版本发布
-    id 'com.google.devtools.ksp' version '2.0.21-1.0.28'
+    // 注意：如果将来需要使用 KSP（如 @Serializable、@Parcelize 等），请使用与 Kotlin 版本兼容的 KSP 版本
+    // Kotlin 2.3.0 需要 KSP 2.3.0+，但目前可能还未发布，所以暂时移除
+    // id 'com.google.devtools.ksp' version '2.3.0-1.0.28'
     id 'maven-publish'
 }
 
@@ -20,7 +20,7 @@ afterEvaluate {
                 from components.release
 
                 // You can then customize attributes of the publication as shown below.
-                groupId = 'com.zfx.commonlib'
+                groupId = 'com.zfx.jetpack'
                 artifactId = 'commonlib'
                 version = '2.0.0'
             }
@@ -33,7 +33,7 @@ android {
     compileSdk 36
 
     defaultConfig {
-        minSdk 21
+        minSdk 24
         targetSdk 36
         versionCode 3
         versionName '2.0.0'
@@ -58,6 +58,16 @@ android {
         viewBinding = true
         dataBinding = true
         compose = true
+    }
+    
+    // 配置 Android Publication，避免警告
+    publishing {
+        singleVariant("release") {
+            // 可以配置是否包含源码
+            withSourcesJar()
+            // 可以配置是否包含文档
+            // withJavadocJar()
+        }
     }
 
 }
