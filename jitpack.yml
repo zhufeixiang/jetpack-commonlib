@@ -1,0 +1,10 @@
+# JitPack 构建配置文件
+# 指定使用 Java 11（Gradle 8.9.1 需要 Java 11+）
+jdk:
+  - openjdk11
+
+# 对于多模块 Android 项目，JitPack 会自动检测并构建
+# 如果需要指定特定模块，可以取消下面的注释
+# subprojects:
+#   - commonlib
+
