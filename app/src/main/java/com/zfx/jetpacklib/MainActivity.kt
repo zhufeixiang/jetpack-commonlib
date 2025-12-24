@@ -27,6 +27,10 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.blankj.utilcode.util.ToastUtils
 import com.zfx.jetpacklib.feature.home.ui.HomeScreen
 import com.zfx.jetpacklib.feature.knowledge.ui.KnowledgeScreen
+import com.zfx.jetpacklib.feature.link.LinkScreen
 
 class MainActivity : ComponentActivity(){
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -77,25 +82,65 @@ class MainActivity : ComponentActivity(){
     @Composable
     private fun AppPortrait() {
         var selectedTab by remember { mutableStateOf(0) }
-        Scaffold(
-            topBar = {
-                TopBar(selectedTab)
-            },
-            bottomBar = {
-                BottomNavigation(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
+        // 管理 LinkScreen 的显示状态
+        var linkScreenData by remember { mutableStateOf<Pair<String, String>?>(null) }
+        
+        // 使用 AnimatedVisibility 实现类似 iOS 的滑动动画
+        AnimatedVisibility(
+            visible = linkScreenData != null,
+            enter = slideInHorizontally(
+                initialOffsetX = { fullWidth -> fullWidth }, // 从右侧滑入
+                animationSpec = tween(durationMillis = 300)
+            ),
+            exit = slideOutHorizontally(
+                targetOffsetX = { fullWidth -> fullWidth }, // 向右侧滑出
+                animationSpec = tween(durationMillis = 300)
+            )
+        ) {
+            if (linkScreenData != null) {
+                LinkScreen(
+                    title = linkScreenData!!.first,
+                    linkUrl = linkScreenData!!.second,
+                    onBackClick = { linkScreenData = null }
                 )
             }
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
-                when (selectedTab) {
-                    0 -> HomeScreen()  // 使用 HomeViewModel
-                    1 -> KnowledgeScreen()  // 使用 KnowledgeViewModel
+        }
+        
+        AnimatedVisibility(
+            visible = linkScreenData == null,
+            enter = slideInHorizontally(
+                initialOffsetX = { fullWidth -> -fullWidth }, // 从左侧滑入（返回时）
+                animationSpec = tween(durationMillis = 300)
+            ),
+            exit = slideOutHorizontally(
+                targetOffsetX = { fullWidth -> -fullWidth }, // 向左侧滑出（跳转时）
+                animationSpec = tween(durationMillis = 300)
+            )
+        ) {
+            Scaffold(
+                topBar = {
+                    TopBar(selectedTab)
+                },
+                bottomBar = {
+                    BottomNavigation(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    when (selectedTab) {
+                        0 -> HomeScreen(
+                            onArticleClick = { article ->
+                                // 跳转到 LinkScreen
+                                linkScreenData = Pair(article.title, article.link)
+                            }
+                        )  // 使用 HomeViewModel
+                        1 -> KnowledgeScreen()  // 使用 KnowledgeViewModel
+                    }
                 }
             }
         }
-
     }
 
     @Composable

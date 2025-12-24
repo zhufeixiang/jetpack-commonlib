@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -20,13 +19,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.blankj.utilcode.util.ToastUtils
 import com.zfx.jetpacklib.feature.home.HomeViewModel
-import com.zfx.jetpacklib.widget.Banner
+import com.zfx.jetpacklib.data.Article
+import com.zfx.commonlib.ext.compose.Banner
 
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
+    onArticleClick: (Article) -> Unit = {}
 ){
     val bannerList  by viewModel.bannerList.collectAsState()
     val articleList by viewModel.articleList.collectAsState()
@@ -78,7 +79,7 @@ fun HomeScreen(
             ToastUtils.showShort("收藏文章：${article.title}")
         },
         onItemClick = { article ->
-            ToastUtils.showShort("点击了item ：${article.title}")
+            onArticleClick(article)
         }
     )
 }
