@@ -69,6 +69,8 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
     // AndroidX AppCompat：提供向后兼容的 Material Design 组件和主题支持
     implementation 'androidx.appcompat:appcompat:1.7.0'
+    // Material Components：提供 Material Design 组件和主题支持（commonlib 的主题需要此依赖）
+    implementation 'com.google.android.material:material:1.12.0'
     
     // ========== 测试框架 ==========
     // JUnit：Java 单元测试框架
