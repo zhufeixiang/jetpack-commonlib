@@ -129,7 +129,8 @@ fun ArticleList(
                 // 文章列表项
                 items(
                     items = data,
-                    key = { article -> article.id } // 使用唯一 ID 作为 key，提升性能
+                    // 使用 ID + publishTime 组合作为 key，确保唯一性（即使 ID 重复也能区分）
+                    key = { article -> "${article.id}_${article.publishTime}" }
                 ) { article ->
                     ArticleItem(
                         data = article,

@@ -77,8 +77,10 @@ class HomeViewModel : BaseViewModel() {
                     _articleList.value = articleData.datas
                     _isRefreshing.value = false
                 } else {
-                    // 加载更多：追加数据
-                    _articleList.value = _articleList.value + articleData.datas
+                    // 加载更多：追加数据并去重（根据 ID）
+                    val existingIds = _articleList.value.map { it.id }.toSet()
+                    val newArticles = articleData.datas.filter { it.id !in existingIds }
+                    _articleList.value = _articleList.value + newArticles
                     _isLoading.value = false
                 }
                 // 判断是否还有更多数据
