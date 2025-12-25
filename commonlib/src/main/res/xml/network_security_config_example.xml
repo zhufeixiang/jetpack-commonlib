@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    网络安全配置示例文件
+    
+    如果使用内网服务器（HTTP），需要创建此文件并配置：
+    1. 将此文件复制到 app/src/main/res/xml/network_security_config.xml
+    2. 在 AndroidManifest.xml 中引用：
+    
+    <application
+        android:networkSecurityConfig="@xml/network_security_config"
+        ...>
+    </application>
+    
+    或者直接在 AndroidManifest.xml 中配置：
+    <application
+        android:usesCleartextTraffic="true"
+        ...>
+    </application>
+-->
+<network-security-config>
+    <!-- 基础配置：允许 HTTP（明文传输） -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- 信任系统证书 -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- 如果需要只允许特定域名使用 HTTP，可以使用 domain-config -->
+    <!--
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">192.168.1.100</domain>
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+    -->
+</network-security-config>
+

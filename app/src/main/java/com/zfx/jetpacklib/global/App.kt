@@ -17,9 +17,11 @@ class App : Application(), SingletonImageLoader.Factory {
         super.onCreate()
 
         StringResourceHelper.init(this)
-        initNetworkManager(
-            baseUrl = "https://www.wanandroid.com"
-        )
+        initNetworkManager{
+            baseUrl("https://www.wanandroid.com")
+//            enableDynamicBaseUrl(true)
+//            putDomain("news","https://www.baidu.com/")
+        }
 
         BaseRepository.setLoginInterceptor(object : LoginInterceptor{
             override fun onUnauthorized(errorCode: Int, errorMessage: String) {

@@ -95,5 +95,18 @@ object StringResourceHelper {
     fun getResources(): Resources? {
         return contextRef?.get()?.resources
     }
+    
+    /**
+     * 获取 Application Context（用于获取缓存目录等）
+     * 
+     * 注意：此方法返回的 Context 可能为 null（如果未初始化）
+     * 调用方应该处理 null 情况
+     * 
+     * @return Application Context，如果未初始化则返回 null
+     */
+    @JvmStatic
+    fun getContext(): Context? {
+        return contextRef?.get()
+    }
 }
 

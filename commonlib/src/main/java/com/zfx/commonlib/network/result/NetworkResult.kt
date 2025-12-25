@@ -15,7 +15,38 @@ sealed class NetworkResult<out T> {
         /**
          * 创建加载中状态（使用默认的本地化消息）
          * 
-         * @return Loading 实例，消息为本地化的加载提示信息
+         * **使用场景**：
+         * 1. 手动触发 Loading 状态（在 ViewModel 中）
+         * 2. 设置初始状态为 Loading
+         * 3. 在 Flow 中手动发射 Loading 状态
+         * 
+         * **在 ViewModel 中的使用示例**：
+         * ```kotlin
+         * class ExampleViewModel : BaseViewModel() {
+         *     private val _uiState = MutableStateFlow<NetworkResult<List<Data>>>(NetworkResult.loading())
+         *     val uiState: StateFlow<NetworkResult<List<Data>>> = _uiState.asStateFlow()
+         *     
+         *     fun loadData() {
+         *         // 手动设置 loading 状态（使用默认消息）
+         *         _uiState.value = NetworkResult.loading()
+         *         
+         *         // 或者使用自定义消息
+         *         _uiState.value = NetworkResult.Loading("正在加载数据...")
+         *         
+         *         collectResult(
+         *             flow = repository.getData(),
+         *             onSuccess = { data ->
+         *                 _uiState.value = NetworkResult.Success(data)
+         *             },
+         *             onError = { error ->
+         *                 _uiState.value = error
+         *             }
+         *         )
+         *     }
+         * }
+         * ```
+         * 
+         * @return Loading 实例，消息为本地化的加载提示信息（"请求中..."）
          */
         fun loading(): Loading {
             return Loading(StringResourceHelper.getString(R.string.network_requesting))
@@ -24,9 +55,39 @@ sealed class NetworkResult<out T> {
         /**
          * 创建错误状态（使用默认的本地化消息）
          * 
-         * @param error 错误异常
-         * @param code 错误码
-         * @return Error 实例，消息为本地化的错误提示信息
+         * **使用场景**：
+         * 1. 在 catch 块中创建错误状态
+         * 2. 手动创建错误状态（在 ViewModel 中）
+         * 3. 统一错误处理
+         * 
+         * **在 ViewModel 中的使用示例**：
+         * ```kotlin
+         * class ExampleViewModel : BaseViewModel() {
+         *     fun loadData() {
+         *         viewModelScope.launch {
+         *             try {
+         *                 _uiState.value = NetworkResult.loading()
+         *                 val data = repository.getData()
+         *                 _uiState.value = NetworkResult.Success(data)
+         *             } catch (e: Exception) {
+         *                 // 使用工厂方法创建错误状态（使用默认消息）
+         *                 _uiState.value = NetworkResult.error(error = e)
+         *                 
+         *                 // 或者使用自定义消息
+         *                 _uiState.value = NetworkResult.Error(
+         *                     error = e,
+         *                     code = -1,
+         *                     message = "加载失败：${e.message}"
+         *                 )
+         *             }
+         *         }
+         *     }
+         * }
+         * ```
+         * 
+         * @param error 错误异常（可选）
+         * @param code 错误码（默认 -1）
+         * @return Error 实例，消息为本地化的错误提示信息（"网络请求失败"）
          */
         fun error(error: Throwable? = null, code: Int = -1): Error {
             return Error(

@@ -53,6 +53,8 @@ class MyApplication : Application() {
 
 ### 1. 初始化网络管理器
 
+#### 基础用法
+
 ```kotlin
 // 方式1：使用配置对象
 val config = NetworkConfig(
@@ -75,6 +77,137 @@ initNetworkManager(
     enableLogging = true
 )
 ```
+
+#### 支持 HTTP（内网服务器）
+
+如果使用内网服务器（HTTP），需要：
+
+**1. 在 AndroidManifest.xml 中配置网络安全策略**
+
+```xml
+<application
+    android:usesCleartextTraffic="true"
+    ...>
+    <!-- 或者使用网络安全配置 -->
+    <meta-data
+        android:name="android.security.net.config"
+        android:resource="@xml/network_security_config" />
+</application>
+```
+
+创建 `res/xml/network_security_config.xml`：
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+```
+
+**2. 在代码中启用 HTTP 支持**
+
+```kotlin
+initNetworkManager {
+    baseUrl("http://192.168.1.100:8080/")  // HTTP 地址
+    allowCleartextTraffic(true)  // 允许 HTTP
+    enableLogging(true)
+}
+```
+
+#### 信任所有 SSL 证书（自签名证书）
+
+如果使用自签名证书（开发环境或内网），需要跳过证书验证：
+
+```kotlin
+initNetworkManager {
+    baseUrl("https://192.168.1.100:8443/")  // HTTPS 自签名证书
+    trustAllCertificates(true)  // 信任所有证书（包括自签名证书）
+    enableLogging(true)
+}
+```
+
+**⚠️ 安全警告**：
+- `trustAllCertificates(true)` 会跳过所有 SSL 证书验证
+- 这会信任所有证书，包括自签名证书和无效证书
+- **仅用于开发环境或内网**，生产环境请勿使用
+- 生产环境应该使用有效的 SSL 证书
+
+**使用场景**：
+- 开发环境使用自签名证书
+- 内网服务器使用自签名证书
+- 测试环境需要跳过证书验证
+
+**之前的配置方式（已废弃）**：
+```kotlin
+// 旧方式（不再需要）
+.sslSocketFactory(createSSLSocketFactory())
+.hostnameVerifier(new TrustAllHostnameVerifier())
+```
+
+现在只需要：
+```kotlin
+trustAllCertificates(true)  // 一行搞定
+```
+
+#### 启用网络缓存
+
+```kotlin
+initNetworkManager {
+    baseUrl("https://api.example.com/")
+    enableCache(true)  // 启用缓存
+    cacheSize(50 * 1024 * 1024)  // 缓存大小：50MB
+    cacheDirectory(File(context.cacheDir, "network-cache"))  // 缓存目录（可选）
+}
+```
+
+#### 使用 ScalarsConverterFactory（返回简单类型）
+
+如果接口返回的是纯文本（String）或简单类型（Int、Boolean 等），需要启用：
+
+```kotlin
+initNetworkManager {
+    baseUrl("https://api.example.com/")
+    useScalarsConverter(true)  // 启用 ScalarsConverter
+}
+
+// 接口定义
+interface ApiService {
+    @GET("version")
+    suspend fun getVersion(): String  // 直接返回 String
+    
+    @GET("count")
+    suspend fun getCount(): Int  // 直接返回 Int
+}
+```
+
+**注意**：ScalarsConverterFactory 必须在 GsonConverterFactory 之前添加（框架已自动处理）。
+
+**重要：在 BaseRepository 中的使用方式**
+
+使用 `ScalarsConverter` 返回简单类型时，**不能使用 `requestFlow`**，需要使用 `requestFlowRaw`：
+
+```kotlin
+class AppRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    // ✅ 正确：使用 requestFlowRaw 处理简单类型
+    fun getVersion(): Flow<NetworkResult<String>> {
+        return requestFlowRaw {
+            apiService.getVersion()
+        }
+    }
+    
+    // ❌ 错误：不能使用 requestFlow（因为 String 不实现 IBaseResponse）
+    // fun getVersion(): Flow<NetworkResult<String>> {
+    //     return requestFlow { apiService.getVersion() }  // 编译错误！
+    // }
+}
+```
+
+详细说明请参考下面的"BaseRepository 方法选择指南"章节。
 
 ### 2. 定义 API 接口
 
@@ -280,6 +413,206 @@ class UserActivity : BaseVmActivity<UserViewModel>() {
 }
 ```
 
+## BaseRepository 方法选择指南
+
+`BaseRepository` 提供了三个主要的网络请求方法，根据不同的场景选择合适的方法：
+
+### 方法对比
+
+| 方法 | 返回类型要求 | 是否校验成功/失败 | 适用场景 |
+|------|------------|----------------|---------|
+| `requestFlow` | 必须实现 `IBaseResponse<T>` | ✅ 是 | JSON 对象响应（最常见） |
+| `requestFlowNoData` | 必须实现 `IBaseResponse<*>` | ✅ 是 | JSON 对象响应，但 data 为空 |
+| `requestFlowRaw` | 任意类型 `T` | ❌ 否 | 简单类型或原始响应对象 |
+
+### 1. requestFlow（推荐，用于 JSON 对象响应）
+
+**使用场景**：
+- 接口返回 JSON 对象，格式如：`{"code": 200, "message": "success", "data": {...}}`
+- 需要自动校验成功/失败状态
+- 需要自动处理未登录错误码
+
+**示例**：
+```kotlin
+interface ApiService {
+    @GET("user/info")
+    suspend fun getUserInfo(): BaseResponse<UserInfo>  // ✅ 返回 BaseResponse
+}
+
+class UserRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    fun getUserInfo(): Flow<NetworkResult<UserInfo>> {
+        return requestFlow {
+            apiService.getUserInfo()  // ✅ 可以使用
+        }
+    }
+}
+```
+
+### 2. requestFlowNoData（用于无数据响应）
+
+**使用场景**：
+- 接口返回 JSON 对象，但 data 字段为空或不需要
+- 只需要判断操作是否成功（如删除、更新、创建等）
+
+**示例**：
+```kotlin
+interface ApiService {
+    @DELETE("user/{id}")
+    suspend fun deleteUser(@Path("id") id: Long): BaseResponse<Unit>  // ✅ 返回 BaseResponse
+}
+
+class UserRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    fun deleteUser(id: Long): Flow<NetworkResult<Unit>> {
+        return requestFlowNoData {
+            apiService.deleteUser(id)  // ✅ 可以使用
+        }
+    }
+}
+```
+
+### 3. requestFlowRaw（用于简单类型或原始响应）
+
+**使用场景**：
+1. **简单类型响应**（需要启用 `useScalarsConverter(true)`）：
+   - 接口返回纯文本（String）
+   - 接口返回简单数字（Int、Long）
+   - 接口返回布尔值（Boolean）
+
+2. **原始响应对象**：
+   - 需要直接获取响应对象，不进行成功/失败判断
+   - 自定义响应处理逻辑
+
+**示例 1：简单类型（需要 ScalarsConverter）**：
+```kotlin
+// 1. 启用 ScalarsConverter
+initNetworkManager {
+    baseUrl("https://api.example.com/")
+    useScalarsConverter(true)  // 启用
+}
+
+// 2. 接口定义
+interface ApiService {
+    @GET("version")
+    suspend fun getVersion(): String  // 返回纯文本 "2.0.0"
+    
+    @GET("count")
+    suspend fun getCount(): Int  // 返回纯数字 100
+}
+
+// 3. Repository 中使用
+class AppRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    fun getVersion(): Flow<NetworkResult<String>> {
+        return requestFlowRaw {
+            apiService.getVersion()  // ✅ 可以使用
+        }
+    }
+    
+    fun getCount(): Flow<NetworkResult<Int>> {
+        return requestFlowRaw {
+            apiService.getCount()  // ✅ 可以使用
+        }
+    }
+    
+    // ❌ 错误：不能使用 requestFlow（因为 String/Int 不实现 IBaseResponse）
+    // fun getVersion(): Flow<NetworkResult<String>> {
+    //     return requestFlow { apiService.getVersion() }  // 编译错误！
+    // }
+}
+```
+
+**示例 2：原始响应对象**：
+```kotlin
+interface ApiService {
+    @GET("data")
+    suspend fun getData(): BaseResponse<Data>  // 返回 BaseResponse
+}
+
+class DataRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    fun getData(): Flow<NetworkResult<BaseResponse<Data>>> {
+        return requestFlowRaw {
+            apiService.getData()  // ✅ 直接返回响应对象
+        }
+    }
+}
+```
+
+### 选择建议
+
+1. **大多数情况**：使用 `requestFlow`
+   - 接口返回 JSON 对象
+   - 需要自动校验成功/失败
+
+2. **无数据操作**：使用 `requestFlowNoData`
+   - 删除、更新、创建等操作
+   - 只需要判断成功/失败
+
+3. **简单类型**：使用 `requestFlowRaw`
+   - 接口返回纯文本、数字、布尔值
+   - 需要启用 `useScalarsConverter(true)`
+
+4. **自定义处理**：使用 `requestFlowRaw`
+   - 需要直接获取响应对象
+   - 自定义成功/失败判断逻辑
+
+### 完整示例
+
+```kotlin
+// 配置
+initNetworkManager {
+    baseUrl("https://api.example.com/")
+    useScalarsConverter(true)  // 启用（用于简单类型）
+}
+
+// 接口
+interface ApiService {
+    // JSON 对象响应
+    @GET("user/info")
+    suspend fun getUserInfo(): BaseResponse<UserInfo>
+    
+    // 无数据响应
+    @DELETE("user/{id}")
+    suspend fun deleteUser(@Path("id") id: Long): BaseResponse<Unit>
+    
+    // 简单类型响应（需要 ScalarsConverter）
+    @GET("version")
+    suspend fun getVersion(): String
+}
+
+// Repository
+class UserRepository : BaseRepository() {
+    private val apiService = getApiService<ApiService>()
+    
+    // ✅ JSON 对象：使用 requestFlow
+    fun getUserInfo(): Flow<NetworkResult<UserInfo>> {
+        return requestFlow {
+            apiService.getUserInfo()
+        }
+    }
+    
+    // ✅ 无数据：使用 requestFlowNoData
+    fun deleteUser(id: Long): Flow<NetworkResult<Unit>> {
+        return requestFlowNoData {
+            apiService.deleteUser(id)
+        }
+    }
+    
+    // ✅ 简单类型：使用 requestFlowRaw
+    fun getVersion(): Flow<NetworkResult<String>> {
+        return requestFlowRaw {
+            apiService.getVersion()
+        }
+    }
+}
+```
+
 ## 高级用法
 
 ### 多环境切换
@@ -296,6 +629,52 @@ val currentEnv = getCurrentNetworkEnvironment()
 // 检查环境是否已配置
 val isConfigured = isEnvironmentConfigured(NetworkEnvironment.DEVELOPMENT)
 ```
+
+### 动态 BaseUrl 切换（多域名支持）
+
+框架使用内置的 `DynamicBaseUrlInterceptor` 实现动态 BaseUrl 切换，无需额外依赖，不依赖 jcenter 仓库。
+
+**注意**：默认禁用（`enableDynamicBaseUrl = false`），单域名项目无需启用。只有多域名项目才需要启用。
+
+#### 使用方式
+
+```kotlin
+// 1. 初始化时，启用动态 BaseUrl 功能（多域名项目需要）
+initNetworkManager {
+    baseUrl("https://api.example.com/")
+    enableDynamicBaseUrl(true)  // 启用动态 BaseUrl（多域名项目需要）
+}
+
+// 2. 配置域名映射
+putDomain("news", "https://news.example.com/")
+putDomain("upload", "https://upload.example.com/")
+
+// 2. 在接口中使用
+interface ApiService {
+    @Headers("Domain-Name: news")
+    @GET("list")
+    suspend fun getNews(): BaseResponse<List<News>>
+    
+    @Headers("Domain-Name: upload")
+    @POST("file")
+    suspend fun upload(@Body body: RequestBody): BaseResponse<Unit>
+}
+
+// 3. 设置全局 BaseUrl（可选）
+setGlobalBaseUrl("https://api.example.com/")
+
+// 4. 移除域名（可选）
+removeDomain("news")
+
+// 5. 清除所有域名（可选）
+clearAllDomains()
+```
+
+**特点**：
+- ✅ 无需额外依赖，纯 Kotlin 实现
+- ✅ 不依赖 jcenter 仓库
+- ✅ 功能完整，支持多域名切换
+- ✅ 线程安全，使用 ConcurrentHashMap
 
 ### 添加认证拦截器
 

@@ -52,8 +52,8 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
-//    implementation project(path:':commonlib')
-    implementation("com.github.zhufeixiang:jetpack-commonlib:2.0.0-beta03")
+    implementation project(path:':commonlib')
+//    implementation("com.github.zhufeixiang:jetpack-commonlib:2.0.0-beta03")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 }

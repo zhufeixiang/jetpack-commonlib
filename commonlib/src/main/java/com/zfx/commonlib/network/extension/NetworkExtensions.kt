@@ -12,7 +12,7 @@ import com.zfx.commonlib.network.manager.NetworkManager
 import com.zfx.commonlib.network.response.IBaseResponse
 import com.zfx.commonlib.network.result.NetworkResult
 import com.zfx.commonlib.util.StringResourceHelper
-import me.jessyan.retrofiturlmanager.RetrofitUrlManager
+import com.zfx.commonlib.network.interceptor.DynamicBaseUrlInterceptor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
@@ -188,13 +188,13 @@ fun isEnvironmentConfigured(environment: NetworkEnvironment): Boolean {
     return NetworkEnvironmentManager.getInstance().isEnvironmentConfigured(environment)
 }
 
-// ==================== 动态多域名（RetrofitUrlManager 包装） ====================
+// ==================== 动态多域名（使用内置 DynamicBaseUrlInterceptor） ====================
 
 /**
  * 设置全局 BaseUrl（调用后需要重新创建服务或重新发起请求才生效）
  */
 fun setGlobalBaseUrl(baseUrl: String) {
-    RetrofitUrlManager.getInstance().setGlobalDomain(baseUrl)
+    DynamicBaseUrlInterceptor.setGlobalBaseUrl(baseUrl)
 }
 
 /**
@@ -202,21 +202,21 @@ fun setGlobalBaseUrl(baseUrl: String) {
  * 使用方式：在接口方法上添加 @Headers("Domain-Name: {domainName}")
  */
 fun putDomain(domainName: String, domainUrl: String) {
-    RetrofitUrlManager.getInstance().putDomain(domainName, domainUrl)
+    DynamicBaseUrlInterceptor.putDomain(domainName, domainUrl)
 }
 
 /**
  * 移除指定域名标识的 BaseUrl 配置
  */
 fun removeDomain(domainName: String) {
-    RetrofitUrlManager.getInstance().removeDomain(domainName)
+    DynamicBaseUrlInterceptor.removeDomain(domainName)
 }
 
 /**
  * 清除所有动态域名配置
  */
 fun clearAllDomains() {
-    RetrofitUrlManager.getInstance().clearAllDomain()
+    DynamicBaseUrlInterceptor.clearAllDomains()
 }
 
 /**

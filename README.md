@@ -1,6 +1,55 @@
+## ⚠️ 已知问题
+
+### Kotlin 2.0.21 编译错误
+
+**错误信息**：
+```
+org.jetbrains.kotlin.util.FileAnalysisException: While analysing ... 
+java.lang.IllegalArgumentException: source must not be null
+```
+
+**原因**：
+这是 Kotlin 官方的已知 bug（[KT-61418](https://youtrack.jetbrains.com/issue/KT-61418)）。在特定情况下，当检查不兼容的类表达式时，编译器会尝试报告诊断信息但找不到正确的源代码位置，导致抛出 `IllegalArgumentException: source must not be null`。
+
+**状态**：✅ **已修复**
+
+**修复版本**：
+- Kotlin 2.0.22
+- Kotlin 2.1.0-RC1 及更高版本
+
+**解决方案**：
+升级 Kotlin 版本到 2.0.22 或更高版本。
+
+在项目的 `build.gradle` 或 `build.gradle.kts` 中更新：
+
+```gradle
+// build.gradle
+buildscript {
+    ext.kotlin_version = '2.0.22'  // 或更高版本
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+```
+
+或
+
+```kotlin
+// build.gradle.kts
+plugins {
+    kotlin("android") version "2.0.22"  // 或更高版本
+}
+```
+
+**相关链接**：
+- [KT-61418 Issue](https://youtrack.jetbrains.com/issue/KT-61418)
+- [Kotlin Release Notes](https://kotlinlang.org/docs/whatsnew20.html)
+
+---
+
 ## 快速开始
 
-### Step 1. 添加 JitPack 仓库
+### Step 1. 添加仓库配置
 
 在项目的 `build.gradle` 或 `settings.gradle` 中添加：
 
@@ -8,11 +57,16 @@
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        google()
         mavenCentral()
         maven { url 'https://jitpack.io' }
     }
 }
 ```
+
+**注意**：
+- 框架已移除 RetrofitUrlManager 依赖，使用内置的 DynamicBaseUrlInterceptor
+- 无需添加 jcenter 仓库，所有功能均可正常使用
 
 ### Step 2. 添加依赖
 
@@ -37,9 +91,33 @@ dependencies {
 ```
 
 **说明**：
-- `INTERNET` 权限是**必须的**（如果使用网络请求功能）
+- `INTERNET` 权限是**必须的**（如果使用网络功能）
 - `ACCESS_NETWORK_STATE` 权限是**可选的**（仅当需要检查网络状态时）
 - 这些是普通权限，不需要运行时请求
+
+### Step 4. 配置 HTTP 支持（如果使用内网服务器）
+
+如果使用内网服务器（HTTP），需要：
+
+**1. 在 AndroidManifest.xml 中配置**
+
+```xml
+<application
+    android:usesCleartextTraffic="true"
+    ...>
+</application>
+```
+
+**2. 在代码中启用**
+
+```kotlin
+initNetworkManager {
+    baseUrl("http://192.168.1.100:8080/")
+    allowCleartextTraffic(true)  // 允许 HTTP
+}
+```
+
+详细说明请参考网络框架使用指南。
 
 ## 更新日志
 

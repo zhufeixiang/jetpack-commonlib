@@ -93,10 +93,12 @@ dependencies {
     api 'com.squareup.retrofit2:retrofit:3.0.0'
     // Retrofit Gson 转换器：将 JSON 响应自动转换为 Kotlin 数据类
     implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
+    // Retrofit Scalars 转换器：将简单类型（String、Int 等）转换为字符串
+    // 用于返回纯文本或简单类型的接口
+    implementation 'com.squareup.retrofit2:converter-scalars:2.9.0'
     // Retrofit 3.0.0+ 已内置协程支持，无需 retrofit2-kotlin-coroutines-adapter
-    // RetrofitUrlManager：动态替换 BaseUrl，支持多域名切换
-    // 使用可参考 https://github.com/JessYanCoding/RetrofitUrlManager
-    implementation 'me.jessyan:retrofit-url-manager:1.4.0'
+    // 注意：已移除 RetrofitUrlManager 依赖，使用内置的 DynamicBaseUrlInterceptor 实现动态 BaseUrl 切换
+    // 无需 jcenter 仓库，功能完全相同
 
     // ========== Kotlin 协程 ==========
     // Kotlin 协程核心库：提供协程的基础功能（Flow、Channel、CoroutineScope 等）
@@ -114,7 +116,7 @@ dependencies {
     // Lifecycle LiveData KTX：提供 LiveData 与协程的互操作支持
     api 'androidx.lifecycle:lifecycle-livedata-ktx:2.9.4'
     // Lifecycle ViewModel Compose：提供 viewModel() 函数用于 Compose
-    api 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
+    api 'androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4'
     
     // ========== Activity/Fragment KTX ==========
     // Activity KTX：提供 Activity 的 Kotlin 扩展函数（如 viewModels()、activityViewModels()）
@@ -190,7 +192,7 @@ dependencies {
     // Compose Material3：Material Design 3 组件库
     api 'androidx.compose.material3:material3'
     // Compose Material：Material Design 组件库（用于 pull-to-refresh 功能）
-    api 'androidx.compose.material:material:1.5.4'
+    api 'androidx.compose.material:material:1.10.0'
     // Activity Compose：提供 Activity 与 Compose 的集成支持（setContent 等）
     api 'androidx.activity:activity-compose:1.9.0'
     // Lifecycle Runtime Compose：提供 Lifecycle 与 Compose 的集成支持

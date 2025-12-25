@@ -3,13 +3,17 @@ package com.zfx.commonlib.network.manager
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.zfx.commonlib.network.config.NetworkConfig
-import me.jessyan.retrofiturlmanager.RetrofitUrlManager
 import com.zfx.commonlib.network.interceptor.LoggingInterceptor
+import com.zfx.commonlib.network.interceptor.DynamicBaseUrlInterceptor
+import com.zfx.commonlib.network.adapter.HtmlEntityStringTypeAdapter
+import com.zfx.commonlib.network.ssl.SSLUtils
 import okhttp3.Cache
+import okhttp3.ConnectionSpec
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -57,7 +61,7 @@ class NetworkManager private constructor() {
         this.gson = gson ?: createDefaultGson()
         
         val okHttpClient = createOkHttpClient(config)
-        retrofit = createRetrofit(config.baseUrl, okHttpClient, this.gson!!)
+        retrofit = createRetrofit(config.baseUrl, okHttpClient, this.gson!!, config.useScalarsConverter)
         isInitialized = true
         
         // 清除旧的API服务缓存
@@ -65,12 +69,55 @@ class NetworkManager private constructor() {
     }
     
     /**
+     * 获取默认缓存目录
+     * 优先使用 Android 的 Context.getCacheDir()，如果不 available 则使用系统临时目录
+     * 可使用cacheDirectory(File(context.cacheDir, "network-cache"))  // 自定义目录
+     * @return 缓存目录 File 对象
+     */
+    private fun getDefaultCacheDirectory(): File {
+        return try {
+            // 尝试通过 StringResourceHelper 获取 Application Context
+            val helperClass = Class.forName("com.zfx.commonlib.util.StringResourceHelper")
+            val getContextMethod = helperClass.getDeclaredMethod("getContext")
+            val context = getContextMethod.invoke(null) as? android.content.Context
+            
+            if (context != null) {
+                // 使用 Android 的缓存目录（推荐）
+                // 路径：/data/data/{package}/cache/okhttp-cache
+                File(context.cacheDir, "okhttp-cache")
+            } else {
+                // 回退到系统临时目录（Context 未初始化或非 Android 环境）
+                File(System.getProperty("java.io.tmpdir", "/tmp"), "okhttp-cache")
+            }
+        } catch (e: Exception) {
+            // 如果获取失败（反射异常、类不存在等），回退到系统临时目录
+            File(System.getProperty("java.io.tmpdir", "/tmp"), "okhttp-cache")
+        }
+    }
+    
+    /**
      * 创建默认的 Gson 实例
+     * 自动解码 HTML 实体（如 &mdash; → ——）
      */
     private fun createDefaultGson(): Gson {
         return GsonBuilder()
             .setLenient()
+            // 设置日期格式：用于解析 JSON 中的日期字符串
+            // 当数据类中有 Date 类型的字段，且 JSON 中是字符串格式（如 "2025-12-25 10:30:00"）时使用
+            // 示例：
+            //   JSON: {"createTime": "2025-12-25 10:30:00"}
+            //   数据类: data class User(val createTime: Date)
+            //   Gson 会自动将字符串解析为 Date 对象
+            // 
+            // 注意：
+            // - 如果数据类中没有 Date 类型字段，此设置不会生效，也不会影响其他类型的解析
+            // - 如果 JSON 中是时间戳（Long），不需要此设置
+            // - 如果数据类中使用的是 String 类型，不需要此设置
+            // - 如果日期格式不同，可以自定义 TypeAdapter
+            // - 此设置是"按需使用"的，即使配置了也不会影响没有 Date 字段的数据类
             .setDateFormat("yyyy-MM-dd HH:mm:ss")
+            // 注册 HTML 实体解码适配器，自动将 &mdash; 等实体解码为对应字符
+            .registerTypeAdapter(String::class.java, HtmlEntityStringTypeAdapter())
             .create()
     }
     
@@ -83,7 +130,33 @@ class NetworkManager private constructor() {
             .readTimeout(config.readTimeout, TimeUnit.SECONDS)
             .writeTimeout(config.writeTimeout, TimeUnit.SECONDS)
         
-        // 添加日志拦截器
+        // 支持 HTTP（明文传输）- 用于内网服务器
+        if (config.allowCleartextTraffic) {
+            // 允许 HTTP 连接
+            builder.connectionSpecs(listOf(
+                ConnectionSpec.MODERN_TLS,
+                ConnectionSpec.CLEARTEXT  // 允许 HTTP
+            ))
+        }
+        
+        // 信任所有 SSL 证书（包括自签名证书）
+        // ⚠️ 警告：仅用于开发环境或内网，生产环境请勿使用
+        if (config.trustAllCertificates) {
+            val trustAllManager = SSLUtils.createTrustAllManager()
+            val sslContext = SSLUtils.createTrustAllSSLContext()
+            builder.sslSocketFactory(sslContext.socketFactory, trustAllManager)
+            builder.hostnameVerifier(SSLUtils.createTrustAllHostnameVerifier())
+        }
+        
+        // 使用内置的 DynamicBaseUrlInterceptor 实现动态 BaseUrl 切换
+        // 先添加动态 BaseUrl 拦截器（需要在其他拦截器之前，这样后续拦截器才能看到替换后的 URL）
+        if (config.enableDynamicBaseUrl) {
+            builder.addInterceptor(DynamicBaseUrlInterceptor())
+            // 设置全局 BaseUrl
+            DynamicBaseUrlInterceptor.setGlobalBaseUrl(config.baseUrl)
+        }
+        
+        // 添加日志拦截器（在 DynamicBaseUrlInterceptor 之后，这样能打印替换后的 URL）
         if (config.enableLogging) {
             val loggingInterceptor = LoggingInterceptor(
                 tag = "OkHttp",
@@ -94,16 +167,33 @@ class NetworkManager private constructor() {
         
         // 添加缓存
         if (config.enableCache) {
-            // 注意：这里需要 Context，如果启用缓存，应该在初始化时传入 Context
-            // 暂时不实现，可以在外部通过拦截器添加
+            val cacheDir = config.cacheDirectory ?: getDefaultCacheDirectory()
+            
+            // 确保缓存目录存在
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs()
+            }
+            
+            val cache = Cache(cacheDir, config.cacheSize)
+            builder.cache(cache)
+        }
+        
+        // 添加 User-Agent
+        if (config.userAgent.isNotEmpty()) {
+            builder.addInterceptor { chain ->
+                val originalRequest = chain.request()
+                val newRequest = originalRequest.newBuilder()
+                    .header("User-Agent", config.userAgent)
+                    .build()
+                chain.proceed(newRequest)
+            }
         }
         
         // 添加自定义拦截器
         config.interceptors.forEach { builder.addInterceptor(it) }
         config.networkInterceptors.forEach { builder.addNetworkInterceptor(it) }
         
-        // 使用 RetrofitUrlManager 支持动态 BaseUrl
-        return RetrofitUrlManager.getInstance().with(builder).build()
+        return builder.build()
     }
     
     /**
@@ -111,17 +201,30 @@ class NetworkManager private constructor() {
      * 
      * 注意：Retrofit 3.0.0+ 已经内置了对 Kotlin 协程的支持，无需额外添加 CoroutineCallAdapterFactory
      * 可以直接在接口方法中使用 suspend 函数
+     * 
+     * Converter 添加顺序很重要：
+     * 1. ScalarsConverterFactory 必须在最前面（用于 String、Int 等简单类型）
+     * 2. GsonConverterFactory 在后面（用于复杂对象）
      */
     private fun createRetrofit(
         baseUrl: String,
         okHttpClient: OkHttpClient,
-        gson: Gson
+        gson: Gson,
+        useScalarsConverter: Boolean
     ): Retrofit {
-        return Retrofit.Builder()
+        val retrofitBuilder = Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .build()
+        
+        // 如果启用 ScalarsConverter，需要先添加（Retrofit 会按顺序尝试转换器）
+        if (useScalarsConverter) {
+            retrofitBuilder.addConverterFactory(ScalarsConverterFactory.create())
+        }
+        
+        // 添加 Gson 转换器
+        retrofitBuilder.addConverterFactory(GsonConverterFactory.create(gson))
+        
+        return retrofitBuilder.build()
     }
     
     /**

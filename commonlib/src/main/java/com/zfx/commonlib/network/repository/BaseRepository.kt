@@ -222,6 +222,36 @@ abstract class BaseRepository {
      * 执行网络请求并返回 Flow<NetworkResult<T>>
      * 这是主要的网络请求方法，会自动处理加载、成功、错误状态
      * 
+     * **重要限制**：
+     * - 返回类型必须实现 `IBaseResponse<T>` 接口（如 `BaseResponse<T>`）
+     * - 适用于返回 JSON 对象的接口
+     * - **不能用于简单类型**（String、Int、Boolean 等），这些需要使用 `requestFlowRaw`
+     * 
+     * **使用场景**：
+     * - 接口返回 JSON 对象，格式如：`{"code": 200, "message": "success", "data": {...}}`
+     * - 需要自动校验成功/失败状态
+     * - 需要自动处理未登录错误码
+     * 
+     * **与 requestFlowRaw 的区别**：
+     * - `requestFlow`：要求返回 `IBaseResponse`，会自动校验成功/失败
+     * - `requestFlowRaw`：可以返回任意类型，不校验成功/失败
+     * 
+     * **示例**：
+     * ```kotlin
+     * interface ApiService {
+     *     @GET("user/info")
+     *     suspend fun getUserInfo(): BaseResponse<UserInfo>  // ✅ 返回 BaseResponse
+     * }
+     * 
+     * fun getUserInfo(): Flow<NetworkResult<UserInfo>> {
+     *     return requestFlow { apiService.getUserInfo() }  // ✅ 可以使用
+     * }
+     * 
+     * // ❌ 错误示例：简单类型不能使用 requestFlow
+     * // suspend fun getVersion(): String  // 返回 String
+     * // return requestFlow { apiService.getVersion() }  // 编译错误！
+     * ```
+     * 
      * @param apiCall 网络请求的 suspend 函数，返回实现了 IBaseResponse 的响应对象
      * @param showLoading 是否显示加载状态，默认为 true
      * @param loadingMessage 加载提示信息
@@ -290,6 +320,28 @@ abstract class BaseRepository {
      * 执行网络请求（响应没有 data 字段）
      * 适用于只需要判断成功/失败，不需要返回数据的接口（如删除、更新等操作）
      * 
+     * **重要限制**：
+     * - 返回类型必须实现 `IBaseResponse<*>` 接口（如 `BaseResponse<Unit>`）
+     * - 适用于返回 JSON 对象的接口，但 data 字段为空
+     * - **不能用于简单类型**（String、Int、Boolean 等），这些需要使用 `requestFlowRaw`
+     * 
+     * **使用场景**：
+     * - 接口返回 JSON 对象，但 data 字段为空或不需要：`{"code": 200, "message": "success", "data": null}`
+     * - 只需要判断操作是否成功（如删除、更新、创建等）
+     * - 需要自动处理未登录错误码
+     * 
+     * **示例**：
+     * ```kotlin
+     * interface ApiService {
+     *     @DELETE("user/{id}")
+     *     suspend fun deleteUser(@Path("id") id: Long): BaseResponse<Unit>  // ✅ 返回 BaseResponse
+     * }
+     * 
+     * fun deleteUser(id: Long): Flow<NetworkResult<Unit>> {
+     *     return requestFlowNoData { apiService.deleteUser(id) }  // ✅ 可以使用
+     * }
+     * ```
+     * 
      * @param apiCall 网络请求的 suspend 函数，返回实现了 IBaseResponse 的响应对象（data 字段可以为空）
      * @param showLoading 是否显示加载状态，默认为 true
      * @param loadingMessage 加载提示信息
@@ -349,10 +401,70 @@ abstract class BaseRepository {
      * 执行网络请求（不校验响应数据）
      * 直接返回响应对象，不进行成功/失败判断
      * 
-     * 注意：如果返回的响应对象实现了 IBaseResponse 接口，仍会检查未登录错误码
+     * **重要特点**：
+     * - 可以返回任意类型 `T`（包括简单类型 String、Int、Boolean 等）
+     * - 不要求返回类型实现 `IBaseResponse` 接口
+     * - 适用于使用 `ScalarsConverter` 返回简单类型的接口
+     * - 如果返回的响应对象实现了 `IBaseResponse` 接口，仍会检查未登录错误码
      * 
-     * @param apiCall 网络请求的 suspend 函数
-     * @param showLoading 是否显示加载状态
+     * **使用场景**：
+     * 1. **简单类型响应**（需要启用 `useScalarsConverter(true)`）：
+     *    - 接口返回纯文本（String）
+     *    - 接口返回简单数字（Int、Long）
+     *    - 接口返回布尔值（Boolean）
+     * 
+     * 2. **原始响应对象**：
+     *    - 需要直接获取响应对象，不进行成功/失败判断
+     *    - 自定义响应处理逻辑
+     * 
+     * **与 requestFlow 的区别**：
+     * - `requestFlow`：要求返回 `IBaseResponse`，会自动校验成功/失败
+     * - `requestFlowRaw`：可以返回任意类型，不校验成功/失败
+     * 
+     * **示例 1：简单类型（需要 ScalarsConverter）**：
+     * ```kotlin
+     * // 1. 启用 ScalarsConverter
+     * initNetworkManager {
+     *     baseUrl("https://api.example.com/")
+     *     useScalarsConverter(true)  // 启用
+     * }
+     * 
+     * // 2. 接口定义
+     * interface ApiService {
+     *     @GET("version")
+     *     suspend fun getVersion(): String  // 返回纯文本 "2.0.0"
+     *     
+     *     @GET("count")
+     *     suspend fun getCount(): Int  // 返回纯数字 100
+     * }
+     * 
+     * // 3. Repository 中使用
+     * fun getVersion(): Flow<NetworkResult<String>> {
+     *     return requestFlowRaw { apiService.getVersion() }  // ✅ 可以使用
+     * }
+     * 
+     * fun getCount(): Flow<NetworkResult<Int>> {
+     *     return requestFlowRaw { apiService.getCount() }  // ✅ 可以使用
+     * }
+     * 
+     * // ❌ 不能使用 requestFlow（因为 String/Int 不实现 IBaseResponse）
+     * // return requestFlow { apiService.getVersion() }  // 编译错误！
+     * ```
+     * 
+     * **示例 2：原始响应对象**：
+     * ```kotlin
+     * interface ApiService {
+     *     @GET("data")
+     *     suspend fun getData(): BaseResponse<Data>  // 返回 BaseResponse
+     * }
+     * 
+     * fun getData(): Flow<NetworkResult<BaseResponse<Data>>> {
+     *     return requestFlowRaw { apiService.getData() }  // ✅ 直接返回响应对象
+     * }
+     * ```
+     * 
+     * @param apiCall 网络请求的 suspend 函数，可以返回任意类型
+     * @param showLoading 是否显示加载状态，默认为 true
      * @param loadingMessage 加载提示信息
      * @return Flow<NetworkResult<T>> 网络请求结果流
      */
