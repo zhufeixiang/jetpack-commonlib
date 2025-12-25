@@ -47,6 +47,107 @@ plugins {
 
 ---
 
+### AndroidX 与旧 Support Library 冲突
+
+**错误信息**：
+```
+Duplicate class android.support.v4.app.INotificationSideChannel found in modules 
+core-1.16.0.aar -> core-1.16.0-runtime (androidx.core:core:1.16.0) and 
+support-compat-24.2.0.aar -> support-compat-24.2.0-runtime (com.android.support:support-compat:24.2.0)
+```
+
+**原因**：
+- 库使用了 `androidx.core:core-ktx:1.16.0`（传递依赖 `androidx.core:core:1.16.0`）
+- 库中的某些依赖（如 `AndroidAutoSize`）可能引入了旧的 `com.android.support:support-compat:24.2.0`
+- AndroidX 和旧的 Support Library 不能同时存在
+
+**解决方案**：
+
+#### 方案 1：使用 Jetifier 自动转换（推荐，最简单）
+
+在项目的 `gradle.properties` 文件中添加：
+
+```properties
+android.useAndroidX=true
+android.enableJetifier=true
+```
+
+**说明**：
+- `android.useAndroidX=true`：启用 AndroidX 支持
+- `android.enableJetifier=true`：自动将旧的 Support Library 转换为 AndroidX（包括传递依赖）
+- 这样 `AndroidAutoSize` 等库中的旧 Support Library 会被自动转换为 AndroidX
+- **这是最简单的解决方案，推荐使用**
+
+#### 方案 2：排除旧的 Support Library
+
+如果不想使用 Jetifier，可以在项目的 `build.gradle` 或 `build.gradle.kts` 中添加全局排除规则：
+
+**Gradle (Groovy)**：
+```gradle
+android {
+    // ... 其他配置
+}
+
+// 全局排除旧的 Support Library
+configurations.all {
+    exclude group: 'com.android.support', module: 'support-compat'
+    exclude group: 'com.android.support', module: 'support-v4'
+    exclude group: 'com.android.support', module: 'support-annotations'
+    exclude group: 'com.android.support', module: 'support-core-utils'
+    exclude group: 'com.android.support', module: 'support-core-ui'
+    exclude group: 'com.android.support', module: 'support-fragment'
+}
+
+dependencies {
+    // ... 你的依赖
+}
+```
+
+**Gradle Kotlin DSL (build.gradle.kts)**：
+```kotlin
+android {
+    // ... 其他配置
+}
+
+// 全局排除旧的 Support Library
+configurations.all {
+    exclude(group = "com.android.support", module = "support-compat")
+    exclude(group = "com.android.support", module = "support-v4")
+    exclude(group = "com.android.support", module = "support-annotations")
+    exclude(group = "com.android.support", module = "support-core-utils")
+    exclude(group = "com.android.support", module = "support-core-ui")
+    exclude(group = "com.android.support", module = "support-fragment")
+}
+
+dependencies {
+    // 显式声明 core-ktx 版本，Gradle 会优先使用项目中的版本
+    implementation(libs.androidx.core.ktx)  // 如果使用 Version Catalog
+    implementation(libs.zfx.lib)
+    // ... 其他依赖
+}
+```
+
+#### 方案 3：统一版本（如果项目使用不同版本的 core-ktx）
+
+如果项目需要使用 `androidx.core:core-ktx:1.10.1`，可以在项目中显式声明：
+
+```gradle
+dependencies {
+    // 显式声明版本，Gradle 会优先使用项目中的版本
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'com.github.zhufeixiang:jetpack-commonlib:Tag'
+}
+```
+
+Gradle 会自动选择项目中声明的版本，避免版本冲突。
+
+**注意**：
+- `androidx.core:core-ktx` 已改为 `api` 依赖，允许使用库的项目控制版本
+- 如果项目声明了特定版本，Gradle 会自动使用项目中的版本
+- **推荐使用方案 1（Jetifier）**，最简单且无需手动排除
+
+---
+
 ## 快速开始
 
 ### Step 1. 添加仓库配置
