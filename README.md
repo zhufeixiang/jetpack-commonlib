@@ -1,3 +1,16 @@
+# Jetpack CommonLib
+
+一个基于 Kotlin + Flow + Jetpack 的 Android 通用基础库，提供网络请求、MVVM/MVI 架构支持、Activity/Fragment 基类、工具类等功能，帮助快速搭建 Android 项目。
+
+**核心特性**：
+- 🌐 **网络请求框架**：基于 Retrofit + OkHttp + Flow，支持多环境切换、动态 BaseUrl、统一异常处理
+- 🏗️ **架构支持**：MVVM 和 MVI 双架构支持，提供完整的基类和扩展函数
+- 🎨 **UI 支持**：支持 ViewBinding、DataBinding、Jetpack Compose
+- 🛠️ **工具库**：屏幕适配、权限管理、沉浸式状态栏、国际化等常用功能
+- 📦 **零反射**：所有功能均不使用反射，性能更优
+
+---
+
 ## ⚠️ 已知问题
 
 ### Kotlin 2.0.21 编译错误
